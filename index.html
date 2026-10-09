@@ -145,7 +145,7 @@
     }
 
     function updateProfileUI() {
-        const avatarUrl = `https://robohash.org{currentUser.avatarSeed}?set=set4`;
+        const avatarUrl = `https://robohash.org/${currentUser.avatarSeed}?set=set4`;
         document.getElementById('headerUserName').innerText = currentUser.name;
         document.getElementById('headerUserAvatar').src = avatarUrl;
         document.getElementById('profileAvatarImg').src = avatarUrl;
@@ -190,6 +190,7 @@
             document.getElementById('postsContainer').innerHTML = "<p style='text-align:center;color:#ff3333;'>Ошибка синхронизации с базой ИТП.</p>";
         }
     }
+
     function renderFeed() {
         const container = document.getElementById('postsContainer');
         container.innerHTML = "";
@@ -224,7 +225,6 @@
             const localLikes = JSON.parse(localStorage.getItem('itp_liked') || "[]");
             const isLiked = localLikes.includes(p.id);
 
-            // Кнопка "Удалить" появится у каждого НОВОГО поста, который написали именно вы
             let deleteBtnHtml = "";
             if (author === currentUser.name) {
                 deleteBtnHtml = `<div class="action-btn" style="color: #ff3333; margin-left: auto;" onclick="deletePost('${p.id}')">🗑️ Удалить</div>`;
@@ -233,7 +233,7 @@
             html += `
                 <div class="post">
                     <div class="post-header">
-                        <img class="post-avatar" src="https://robohash.org{seed}?set=set4" alt="">
+                        <img class="post-avatar" src="https://robohash.org/${seed}?set=set4" alt="">
                         <div class="author-details">
                             <span class="author-name">${author}</span>
                         </div>
@@ -244,7 +244,7 @@
                             ❤️ <span id="like-count-${p.id}">${likesCount}</span>
                         </div>
                         ${author !== currentUser.name ? `
-                        <div class="action-btn chat-link" onclick="startChat('\${author}')">
+                        <div class="action-btn chat-link" onclick="startChat('${author}')">
                             💬 Личное сообщение
                         </div>` : ''}
                         ${deleteBtnHtml}
@@ -255,8 +255,22 @@
     }
 
     async function addPost() {
+        const btn = document.querySelector('.feed-form button');
         const txt = document.getElementById('postText').value.trim();
         if (txt === "") return;
+
+        // ЗАЩИТА 1: Блокируем кнопку
+        btn.disabled = true;
+        btn.style.opacity = "0.5";
+        btn.innerText = "Отправка...";
+
+        // ЗАЩИТА 2: Освобождаем место при переполнении
+        if (allServerPosts.length >= 80) {
+            const oldestPost = allServerPosts.reduce((prev, curr) => Number(prev.id) < Number(curr.id) ? prev : curr);
+            try {
+                await fetch(`${API_URL}/${oldestPost.id}`, { method: 'DELETE' });
+            } catch(e) { console.error("Не удалось освободить место", e); }
+        }
 
         const packedData = `${currentUser.name}|||${txt}|||${currentUser.avatarSeed}`;
 
@@ -268,11 +282,18 @@
             });
             if (!response.ok) throw new Error();
             document.getElementById('postText').value = "";
-            loadData();
+            await loadData();
         } catch (e) {
             alert("Не удалось отправить публикацию.");
+        } finally {
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.style.opacity = "1";
+                btn.innerText = "Опубликовать";
+            }, 4000);
         }
     }
+
     async function deletePost(postId) {
         if (!confirm("Вы уверены, что хотите удалить этот пост?")) return;
         try {
@@ -381,49 +402,6 @@
     // Запуск всего функционала ИТП
     initProfile();
     loadData();
-    async function addPost() {
-        const btn = document.querySelector('.feed-form button');
-        const txt = document.getElementById('postText').value.trim();
-        if (txt === "") return;
-
-        // ЗАЩИТА 1: Блокируем кнопку, чтобы нельзя было кликать по 100 раз
-        btn.disabled = true;
-        btn.style.opacity = "0.5";
-        btn.innerText = "Отправка...";
-
-        // ЗАЩИТА 2: Проверяем забитость базы перед публикацией
-        if (allServerPosts.length >= 80) {
-            // Ищем самый первый (старый) пост по минимальному ID
-            const oldestPost = allServerPosts.reduce((prev, curr) => Number(prev.id) < Number(curr.id) ? prev : curr);
-            try {
-                // Тихо удаляем старый пост, освобождая место на сервере
-                await fetch(`${API_URL}/${oldestPost.id}`, { method: 'DELETE' });
-            } catch(e) { console.error("Не удалось освободить место", e); }
-        }
-
-        const packedData = `${currentUser.name}|||${txt}|||${currentUser.avatarSeed}`;
-
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: packedData, avatar: 0 })
-            });
-            if (!response.ok) throw new Error();
-            document.getElementById('postText').value = "";
-            await loadData();
-        } catch (e) {
-            alert("Не удалось отправить публикацию.");
-        } finally {
-            // Разблокируем кнопку только через 4 секунды после попытки отправки
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.style.opacity = "1";
-                btn.innerText = "Опубликовать";
-            }, 4000);
-        }
-    }
-
 </script>
 </body>
 </html>
