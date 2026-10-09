@@ -99,7 +99,7 @@
     .author-name { color: #fff; font-weight: bold; font-size: 15px; display: inline-flex; align-items: center; gap: 4px; }
     .post-content { font-size: 15px; line-height: 1.4; white-space: pre-wrap; margin-bottom: 10px; }
 
-    /* ⭐ ГАЛОЧКА — 6-конечная звезда (гексаграмма) 24×24 */
+    /* ⭐ ГАЛОЧКИ — 6-конечная звезда 24×24 */
     .verified-badge {
         display: inline-block;
         width: 24px;
@@ -107,10 +107,19 @@
         flex-shrink: 0;
         vertical-align: -5px;
         margin-left: 2px;
-        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='%231d9bf0' stroke='%231d9bf0' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='white'/></svg>");
         background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
+    }
+
+    /* Синяя звезда — для "Dev - android app" */
+    .verified-badge.verified-blue {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='%231d9bf0' stroke='%231d9bf0' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='white'/></svg>");
+    }
+
+    /* Золотая звезда — для "Dev - WebCode" */
+    .verified-badge.verified-gold {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='%23ffb700' stroke='%23ffb700' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='white'/></svg>");
     }
     
     /* Кнопки действий */
@@ -170,16 +179,22 @@
     let activeChatPartner = ""; 
     let allServerPosts = [];
 
-    // ✅ Проверка: является ли пользователь "Dev"
-    function isVerifiedUser(name) {
-        return name && name.trim().toLowerCase() === "dev";
+    // ✅ Проверка типа аккаунта (без учёта регистра)
+    function getVerifyType(name) {
+        if (!name) return null;
+        const n = name.trim().toLowerCase();
+        if (n === "dev - android app") return "blue";
+        if (n === "dev - webcode") return "gold";
+        if (n === "dev") return "blue"; // на всякий случай, если кто-то оставит просто Dev
+        return null;
     }
 
-    // ⭐ Галочка-звёздочка как в Telegram (6-конечная)
+    // ⭐ Галочка-звёздочка — синяя или золотая
     function getVerifiedBadge(name) {
-        return isVerifiedUser(name) 
-            ? '<span class="verified-badge" title="Верифицированный аккаунт"></span>' 
-            : '';
+        const type = getVerifyType(name);
+        if (!type) return '';
+        const title = type === "gold" ? "Dev - WebCode (верифицирован)" : "Dev - android app (верифицирован)";
+        return `<span class="verified-badge verified-${type}" title="${title}"></span>`;
     }
 
     function getUserAvatarUrl(seed, customAvatar) {
@@ -275,8 +290,11 @@
         localStorage.setItem('itp_user', JSON.stringify(currentUser));
         updateProfileUI();
         
-        if (isVerifiedUser(newName)) {
-            alert("⭐ Профиль сохранён! Вы получили звёздочку верификации как в Telegram.");
+        const type = getVerifyType(newName);
+        if (type === "blue") {
+            alert("⭐ Профиль сохранён! Вы получили синюю звёздочку (Dev - android app).");
+        } else if (type === "gold") {
+            alert("🌟 Профиль сохранён! Вы получили золотую звёздочку (Dev - WebCode).");
         } else {
             alert("Профиль успешно сохранён!");
         }
