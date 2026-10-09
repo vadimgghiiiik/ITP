@@ -96,8 +96,22 @@
     .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
     .post-avatar { width: 40px; height: 40px; border-radius: 50%; background: #3a3b3c; object-fit: cover; }
     .author-details { display: flex; flex-direction: column; }
-    .author-name { color: #fff; font-weight: bold; font-size: 15px; }
+    .author-name { color: #fff; font-weight: bold; font-size: 15px; display: inline-flex; align-items: center; gap: 4px; }
     .post-content { font-size: 15px; line-height: 1.4; white-space: pre-wrap; margin-bottom: 10px; }
+
+    /* ⭐ ГАЛОЧКА — 6-конечная звезда (гексаграмма) 24×24 */
+    .verified-badge {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        vertical-align: -5px;
+        margin-left: 2px;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='%231d9bf0' stroke='%231d9bf0' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='white'/></svg>");
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+    }
     
     /* Кнопки действий */
     .post-actions { display: flex; gap: 20px; border-top: 1px solid #3a3b3c; padding-top: 10px; font-size: 14px; }
@@ -151,12 +165,23 @@
     let currentUser = { 
         name: "Пользователь", 
         avatarSeed: "user" + Math.floor(Math.random()*1000),
-        customAvatar: null // сюда кладём base64 картинку, если загружена своя
+        customAvatar: null
     };
     let activeChatPartner = ""; 
     let allServerPosts = [];
 
-    // Получить URL аватарки пользователя (своя картинка или робохаш)
+    // ✅ Проверка: является ли пользователь "Dev"
+    function isVerifiedUser(name) {
+        return name && name.trim().toLowerCase() === "dev";
+    }
+
+    // ⭐ Галочка-звёздочка как в Telegram (6-конечная)
+    function getVerifiedBadge(name) {
+        return isVerifiedUser(name) 
+            ? '<span class="verified-badge" title="Верифицированный аккаунт"></span>' 
+            : '';
+    }
+
     function getUserAvatarUrl(seed, customAvatar) {
         if (customAvatar && customAvatar.startsWith("data:image")) {
             return customAvatar;
@@ -178,24 +203,27 @@
 
     function updateProfileUI() {
         const avatarUrl = getUserAvatarUrl(currentUser.avatarSeed, currentUser.customAvatar);
-        document.getElementById('headerUserName').innerText = currentUser.name;
+        const headerNameEl = document.getElementById('headerUserName');
+        
+        headerNameEl.innerHTML = `${currentUser.name}${getVerifiedBadge(currentUser.name)}`;
+        headerNameEl.style.display = "inline-flex";
+        headerNameEl.style.alignItems = "center";
+        headerNameEl.style.gap = "4px";
+        
         document.getElementById('headerUserAvatar').src = avatarUrl;
         document.getElementById('profileAvatarImg').src = avatarUrl;
         document.getElementById('profileNameInput').value = currentUser.name;
     }
 
-    // Обработка загрузки своей картинки на аву
     function handleAvatarUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
 
-        // Проверка типа
         if (!file.type.startsWith('image/')) {
             alert("Пожалуйста, выберите изображение!");
             return;
         }
 
-        // Проверка размера (не больше 2 МБ)
         if (file.size > 2 * 1024 * 1024) {
             alert("Картинка слишком большая! Максимум 2 МБ.");
             return;
@@ -203,7 +231,6 @@
 
         const reader = new FileReader();
         reader.onload = function(e) {
-            // Сжимаем картинку до 200x200 через canvas, чтобы не раздувать localStorage
             const img = new Image();
             img.onload = function() {
                 const canvas = document.createElement('canvas');
@@ -212,7 +239,6 @@
                 canvas.height = size;
                 const ctx = canvas.getContext('2d');
 
-                // Обрезаем квадратом по центру
                 const minSide = Math.min(img.width, img.height);
                 const sx = (img.width - minSide) / 2;
                 const sy = (img.height - minSide) / 2;
@@ -228,7 +254,6 @@
         };
         reader.readAsDataURL(file);
         
-        // Сбрасываем input, чтобы можно было выбрать тот же файл повторно
         event.target.value = "";
     }
 
@@ -244,13 +269,18 @@
         const newName = document.getElementById('profileNameInput').value.trim();
         if(newName === "") return alert("Имя не может быть пустым!");
         currentUser.name = newName;
-        // Обновляем seed только если нет своей картинки
         if (!currentUser.customAvatar) {
             currentUser.avatarSeed = encodeURIComponent(newName);
         }
         localStorage.setItem('itp_user', JSON.stringify(currentUser));
         updateProfileUI();
-        alert("Профиль успешно сохранён!");
+        
+        if (isVerifiedUser(newName)) {
+            alert("⭐ Профиль сохранён! Вы получили звёздочку верификации как в Telegram.");
+        } else {
+            alert("Профиль успешно сохранён!");
+        }
+        
         switchScreen('feed');
         loadData();
     }
@@ -300,7 +330,7 @@
             let author = "Аноним";
             let content = p.name;
             let seed = "default";
-            let postCustomAvatar = null; // своя картинка автора поста
+            let postCustomAvatar = null;
             
             let likesCount = p.avatar;
             if (!likesCount || isNaN(likesCount) || String(likesCount).includes("http")) {
@@ -315,7 +345,6 @@
                 postCustomAvatar = parts[3] || null;
             }
 
-            // Если это наш пост — используем наш актуальный аватар
             if (author === currentUser.name) {
                 postCustomAvatar = currentUser.customAvatar;
                 if (!postCustomAvatar) seed = currentUser.avatarSeed;
@@ -333,12 +362,14 @@
                 ? postCustomAvatar 
                 : `https://robohash.org/${seed}?set=set4`;
 
+            const badge = getVerifiedBadge(author);
+
             html += `
                 <div class="post">
                     <div class="post-header">
                         <img class="post-avatar" src="${avatarSrc}" alt="">
                         <div class="author-details">
-                            <span class="author-name">${author}</span>
+                            <span class="author-name">${author}${badge}</span>
                         </div>
                     </div>
                     <div class="post-content">${content || "Пустое сообщение"}</div>
@@ -373,7 +404,6 @@
             } catch(e) { console.error("Не удалось освободить место", e); }
         }
 
-        // Передаём свою картинку в посте (4-й параметр), если она есть
         const customAvatar = currentUser.customAvatar || "";
         const packedData = `${currentUser.name}|||${txt}|||${currentUser.avatarSeed}|||${customAvatar}`;
 
@@ -447,7 +477,13 @@
     }
 
     function renderDirectMessages() {
-        document.getElementById('activeChatTitle').innerText = `Диалог с: ${activeChatPartner}`;
+        const titleEl = document.getElementById('activeChatTitle');
+        titleEl.innerHTML = `Диалог с: ${activeChatPartner}${getVerifiedBadge(activeChatPartner)}`;
+        titleEl.style.display = "flex";
+        titleEl.style.alignItems = "center";
+        titleEl.style.justifyContent = "center";
+        titleEl.style.gap = "5px";
+
         const container = document.getElementById('chatMessagesContainer');
         container.innerHTML = "";
 
@@ -499,10 +535,8 @@
         }
     }
 
-    // Автоматическое фоновое обновление раз в 5 секунд
     setInterval(loadData, 5000);
 
-    // Запуск всего функционала ИТП
     initProfile();
     loadData();
 </script>
