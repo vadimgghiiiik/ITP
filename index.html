@@ -41,9 +41,18 @@
     <!-- ВКЛАДКА 3: НАСТРОЙКИ ПРОФИЛЯ -->
     <div id="screen-profile" class="screen">
         <div class="profile-card">
-            <img id="profileAvatarImg" src="" alt="Аватар">
+            <div class="avatar-wrapper" onclick="document.getElementById('avatarFileInput').click()">
+                <img id="profileAvatarImg" src="" alt="Аватар">
+                <div class="avatar-overlay">📷 Сменить</div>
+            </div>
+            <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
+            
             <input type="text" id="profileNameInput" class="profile-input" placeholder="Ваше имя">
-            <button onclick="saveProfile()">Сохранить профиль</button>
+            
+            <div class="profile-buttons">
+                <button onclick="saveProfile()">Сохранить профиль</button>
+                <button class="btn-secondary" onclick="resetAvatar()">Сбросить аватар</button>
+            </div>
         </div>
     </div>
 
@@ -73,7 +82,7 @@
 
     /* Профиль в шапке */
     .user-badge { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #fff; cursor: pointer; }
-    .user-badge img { width: 32px; height: 32px; border-radius: 50%; background: #3a3b3c; border: 2px solid #ff4d4d; }
+    .user-badge img { width: 32px; height: 32px; border-radius: 50%; background: #3a3b3c; border: 2px solid #ff4d4d; object-fit: cover; }
 
     /* Форма нового поста */
     .feed-form { background: #242526; border: 1px solid #3a3b3c; border-radius: 12px; padding: 15px; margin-bottom: 20px; }
@@ -85,7 +94,7 @@
     /* Стили постов в ленте */
     .post { background: #242526; border: 1px solid #3a3b3c; padding: 15px; border-radius: 12px; margin-bottom: 15px; position: relative; }
     .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-    .post-avatar { width: 40px; height: 40px; border-radius: 50%; background: #3a3b3c; }
+    .post-avatar { width: 40px; height: 40px; border-radius: 50%; background: #3a3b3c; object-fit: cover; }
     .author-details { display: flex; flex-direction: column; }
     .author-name { color: #fff; font-weight: bold; font-size: 15px; }
     .post-content { font-size: 15px; line-height: 1.4; white-space: pre-wrap; margin-bottom: 10px; }
@@ -105,8 +114,18 @@
 
     /* Настройки профиля */
     .profile-card { background: #242526; border: 1px solid #3a3b3c; border-radius: 12px; padding: 20px; text-align: center; }
-    .profile-card img { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #ff4d4d; margin-bottom: 15px; }
+    
+    /* Аватар с оверлеем */
+    .avatar-wrapper { position: relative; display: inline-block; cursor: pointer; margin-bottom: 15px; border-radius: 50%; overflow: hidden; }
+    .avatar-wrapper img { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #ff4d4d; object-fit: cover; display: block; transition: 0.3s; }
+    .avatar-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: #fff; font-size: 12px; padding: 5px 0; opacity: 0; transition: 0.3s; }
+    .avatar-wrapper:hover img { filter: brightness(0.6); }
+    .avatar-wrapper:hover .avatar-overlay { opacity: 1; }
+
     .profile-input { width: 100%; padding: 10px; background: #18191a; border: 1px solid #3a3b3c; color: #fff; border-radius: 8px; text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 15px; }
+    .profile-buttons { display: flex; flex-direction: column; gap: 10px; }
+    .btn-secondary { background: #3a3b3c; }
+    .btn-secondary:hover { background: #4a4b4c; }
 
     /* Личные диалоги */
     .chat-layout { display: flex; flex-direction: column; height: calc(100vh - 150px); background: #242526; border: 1px solid #3a3b3c; border-radius: 12px; overflow: hidden; }
@@ -129,14 +148,27 @@
     const RESOURCE = "posts"; 
     const API_URL = BASE_URL + RESOURCE;
 
-    let currentUser = { name: "Пользователь", avatarSeed: "user" + Math.floor(Math.random()*1000) };
+    let currentUser = { 
+        name: "Пользователь", 
+        avatarSeed: "user" + Math.floor(Math.random()*1000),
+        customAvatar: null // сюда кладём base64 картинку, если загружена своя
+    };
     let activeChatPartner = ""; 
     let allServerPosts = [];
+
+    // Получить URL аватарки пользователя (своя картинка или робохаш)
+    function getUserAvatarUrl(seed, customAvatar) {
+        if (customAvatar && customAvatar.startsWith("data:image")) {
+            return customAvatar;
+        }
+        return `https://robohash.org/${seed}?set=set4`;
+    }
 
     function initProfile() {
         const saved = localStorage.getItem('itp_user');
         if (saved) {
             currentUser = JSON.parse(saved);
+            if (!currentUser.customAvatar) currentUser.customAvatar = null;
         } else {
             currentUser.name = "Пользователь_" + Math.floor(Math.random() * 9000 + 1000);
             localStorage.setItem('itp_user', JSON.stringify(currentUser));
@@ -145,21 +177,80 @@
     }
 
     function updateProfileUI() {
-        const avatarUrl = `https://robohash.org/${currentUser.avatarSeed}?set=set4`;
+        const avatarUrl = getUserAvatarUrl(currentUser.avatarSeed, currentUser.customAvatar);
         document.getElementById('headerUserName').innerText = currentUser.name;
         document.getElementById('headerUserAvatar').src = avatarUrl;
         document.getElementById('profileAvatarImg').src = avatarUrl;
         document.getElementById('profileNameInput').value = currentUser.name;
     }
 
+    // Обработка загрузки своей картинки на аву
+    function handleAvatarUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Проверка типа
+        if (!file.type.startsWith('image/')) {
+            alert("Пожалуйста, выберите изображение!");
+            return;
+        }
+
+        // Проверка размера (не больше 2 МБ)
+        if (file.size > 2 * 1024 * 1024) {
+            alert("Картинка слишком большая! Максимум 2 МБ.");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Сжимаем картинку до 200x200 через canvas, чтобы не раздувать localStorage
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const size = 200;
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                // Обрезаем квадратом по центру
+                const minSide = Math.min(img.width, img.height);
+                const sx = (img.width - minSide) / 2;
+                const sy = (img.height - minSide) / 2;
+                ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                currentUser.customAvatar = compressedDataUrl;
+                localStorage.setItem('itp_user', JSON.stringify(currentUser));
+                updateProfileUI();
+                alert("Аватар обновлён! Нажмите «Сохранить профиль», чтобы применить его в постах.");
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+        
+        // Сбрасываем input, чтобы можно было выбрать тот же файл повторно
+        event.target.value = "";
+    }
+
+    function resetAvatar() {
+        if (!confirm("Сбросить аватар на стандартный?")) return;
+        currentUser.customAvatar = null;
+        localStorage.setItem('itp_user', JSON.stringify(currentUser));
+        updateProfileUI();
+        alert("Аватар сброшен.");
+    }
+
     function saveProfile() {
         const newName = document.getElementById('profileNameInput').value.trim();
         if(newName === "") return alert("Имя не может быть пустым!");
         currentUser.name = newName;
-        currentUser.avatarSeed = encodeURIComponent(newName);
+        // Обновляем seed только если нет своей картинки
+        if (!currentUser.customAvatar) {
+            currentUser.avatarSeed = encodeURIComponent(newName);
+        }
         localStorage.setItem('itp_user', JSON.stringify(currentUser));
         updateProfileUI();
-        alert("Профиль успешно сохранен!");
+        alert("Профиль успешно сохранён!");
         switchScreen('feed');
         loadData();
     }
@@ -209,6 +300,7 @@
             let author = "Аноним";
             let content = p.name;
             let seed = "default";
+            let postCustomAvatar = null; // своя картинка автора поста
             
             let likesCount = p.avatar;
             if (!likesCount || isNaN(likesCount) || String(likesCount).includes("http")) {
@@ -220,6 +312,13 @@
                 author = parts[0];
                 content = parts[1];
                 seed = parts[2] || "default";
+                postCustomAvatar = parts[3] || null;
+            }
+
+            // Если это наш пост — используем наш актуальный аватар
+            if (author === currentUser.name) {
+                postCustomAvatar = currentUser.customAvatar;
+                if (!postCustomAvatar) seed = currentUser.avatarSeed;
             }
 
             const localLikes = JSON.parse(localStorage.getItem('itp_liked') || "[]");
@@ -230,10 +329,14 @@
                 deleteBtnHtml = `<div class="action-btn" style="color: #ff3333; margin-left: auto;" onclick="deletePost('${p.id}')">🗑️ Удалить</div>`;
             }
 
+            const avatarSrc = postCustomAvatar 
+                ? postCustomAvatar 
+                : `https://robohash.org/${seed}?set=set4`;
+
             html += `
                 <div class="post">
                     <div class="post-header">
-                        <img class="post-avatar" src="https://robohash.org/${seed}?set=set4" alt="">
+                        <img class="post-avatar" src="${avatarSrc}" alt="">
                         <div class="author-details">
                             <span class="author-name">${author}</span>
                         </div>
@@ -259,12 +362,10 @@
         const txt = document.getElementById('postText').value.trim();
         if (txt === "") return;
 
-        // ЗАЩИТА 1: Блокируем кнопку
         btn.disabled = true;
         btn.style.opacity = "0.5";
         btn.innerText = "Отправка...";
 
-        // ЗАЩИТА 2: Освобождаем место при переполнении
         if (allServerPosts.length >= 80) {
             const oldestPost = allServerPosts.reduce((prev, curr) => Number(prev.id) < Number(curr.id) ? prev : curr);
             try {
@@ -272,7 +373,9 @@
             } catch(e) { console.error("Не удалось освободить место", e); }
         }
 
-        const packedData = `${currentUser.name}|||${txt}|||${currentUser.avatarSeed}`;
+        // Передаём свою картинку в посте (4-й параметр), если она есть
+        const customAvatar = currentUser.customAvatar || "";
+        const packedData = `${currentUser.name}|||${txt}|||${currentUser.avatarSeed}|||${customAvatar}`;
 
         try {
             const response = await fetch(API_URL, {
