@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ИТП — Социальная сеть</title>
+</head>
+<body>
+
+    <header>
+        <div class="logo">ИТП</div>
+        <div class="user-badge" onclick="switchScreen('profile')">
+            <span id="headerUserName">Пользователь</span>
+            <img id="headerUserAvatar" src="" alt="Avatar">
+        </div>
+    </header>
+
+    <!-- ВКЛАДКА 1: ЛЕНТА -->
+    <div id="screen-feed" class="screen active">
+        <div class="feed-form">
+            <textarea id="postText" placeholder="Что у вас нового?"></textarea>
+            <div class="form-actions">
+                <button onclick="addPost()">Опубликовать</button>
+            </div>
+        </div>
+        <div id="postsContainer">Загрузка ИТП...</div>
+    </div>
+
+    <!-- ВКЛАДКА 2: ЛИЧНЫЕ ЧАТЫ -->
+    <div id="screen-chats" class="screen">
+        <div class="chat-layout">
+            <div id="activeChatTitle" class="chat-header-title">Выберите пользователя в Ленте для диалога</div>
+            <div id="chatMessagesContainer" class="chat-messages"></div>
+            <div class="chat-footer">
+                <input type="text" id="chatMessageInput" placeholder="Напишите сообщение..." onkeypress="if(event.key==='Enter') sendDirectMessage()">
+                <button onclick="sendDirectMessage()">📎</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ВКЛАДКА 3: НАСТРОЙКИ ПРОФИЛЯ -->
+    <div id="screen-profile" class="screen">
+        <div class="profile-card">
+            <img id="profileAvatarImg" src="" alt="Аватар">
+            <input type="text" id="profileNameInput" class="profile-input" placeholder="Ваше имя">
+            <button onclick="saveProfile()">Сохранить профиль</button>
+        </div>
+    </div>
+
+    <!-- Нижнее меню навигации -->
+    <nav>
+        <div class="nav-item active" id="nav-feed" onclick="switchScreen('feed')">
+            <span class="nav-icon">📰</span><span>Лента</span>
+        </div>
+        <div class="nav-item" id="nav-chats" onclick="switchScreen('chats')">
+            <span class="nav-icon">💬</span><span>Чаты</span>
+        </div>
+        <div class="nav-item" id="nav-profile" onclick="switchScreen('profile')">
+            <span class="nav-icon">👤</span><span>Профиль</span>
+        </div>
+    </nav>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #111213; color: #e4e6eb; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; padding-bottom: 70px; }
+    
+    /* Верхняя шапка */
+    header { background: #242526; padding: 15px; font-size: 22px; font-weight: bold; text-align: center; border-bottom: 1px solid #3a3b3c; color: #ff4d4d; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .logo { font-weight: 900; letter-spacing: 1px; }
+    
+    /* Экраны разделов */
+    .screen { display: none; padding: 15px; max-width: 600px; margin: 0 auto; }
+    .screen.active { display: block; }
+
+    /* Профиль в шапке */
+    .user-badge { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #fff; cursor: pointer; }
+    .user-badge img { width: 32px; height: 32px; border-radius: 50%; background: #3a3b3c; border: 2px solid #ff4d4d; }
+
+    /* Форма нового поста */
+    .feed-form { background: #242526; border: 1px solid #3a3b3c; border-radius: 12px; padding: 15px; margin-bottom: 20px; }
+    textarea { width: 100%; height: 70px; background: #18191a; color: #fff; border: 1px solid #3a3b3c; border-radius: 8px; padding: 10px; resize: none; outline: none; font-size: 15px; }
+    .form-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+    button { background: #ff4d4d; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    button:hover { background: #e03a3a; }
+
+    /* Стили постов в ленте */
+    .post { background: #242526; border: 1px solid #3a3b3c; padding: 15px; border-radius: 12px; margin-bottom: 15px; position: relative; }
+    .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .post-avatar { width: 40px; height: 40px; border-radius: 50%; background: #3a3b3c; }
+    .author-details { display: flex; flex-direction: column; }
+    .author-name { color: #fff; font-weight: bold; font-size: 15px; }
+    .post-content { font-size: 15px; line-height: 1.4; white-space: pre-wrap; margin-bottom: 10px; }
+    
+    /* Кнопки действий */
+    .post-actions { display: flex; gap: 20px; border-top: 1px solid #3a3b3c; padding-top: 10px; font-size: 14px; }
+    .action-btn { display: flex; align-items: center; gap: 5px; cursor: pointer; color: #b0b3b8; transition: 0.2s; user-select: none; }
+    .action-btn:hover { color: #fff; }
+    .action-btn.liked { color: #ff4d4d; }
+    .action-btn.chat-link { color: #4bacff; }
+
+    /* Эффект корзины при наведении */
+    .post-actions .action-btn[onclick*="deletePost"]:hover {
+        color: #ff4d4d !important;
+        text-shadow: 0 0 5px rgba(255, 77, 77, 0.3);
+    }
+
+    /* Настройки профиля */
+    .profile-card { background: #242526; border: 1px solid #3a3b3c; border-radius: 12px; padding: 20px; text-align: center; }
+    .profile-card img { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #ff4d4d; margin-bottom: 15px; }
+    .profile-input { width: 100%; padding: 10px; background: #18191a; border: 1px solid #3a3b3c; color: #fff; border-radius: 8px; text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 15px; }
+
+    /* Личные диалоги */
+    .chat-layout { display: flex; flex-direction: column; height: calc(100vh - 150px); background: #242526; border: 1px solid #3a3b3c; border-radius: 12px; overflow: hidden; }
+    .chat-header-title { padding: 12px; background: #18191a; border-bottom: 1px solid #3a3b3c; font-weight: bold; text-align: center; color: #4bacff; }
+    .chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .msg { max-width: 75%; padding: 10px 14px; border-radius: 16px; font-size: 15px; line-height: 1.4; }
+    .msg.incoming { background: #3a3b3c; align-self: flex-start; color: #fff; }
+    .msg.outgoing { background: #0072ff; align-self: flex-end; color: #fff; }
+    .chat-footer { display: flex; padding: 10px; background: #18191a; border-top: 1px solid #3a3b3c; gap: 10px; }
+    .chat-footer input { flex: 1; background: #242526; border: 1px solid #3a3b3c; color: #fff; padding: 10px; border-radius: 8px; outline: none; }
+
+    /* Нижняя навигация */
+    nav { position: fixed; bottom: 0; left: 0; right: 0; background: #242526; border-top: 1px solid #3a3b3c; display: flex; justify-content: space-around; padding: 10px 0; z-index: 100; }
+    .nav-item { color: #b0b3b8; text-decoration: none; font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; width: 33%; text-align: center; }
+    .nav-item.active { color: #ff4d4d; font-weight: bold; }
+    .nav-icon { font-size: 20px; }
+</style>
+<script>
+    const BASE_URL = "https://6ac8473b75a4ce3fe7228a08.mockapi.io/api/v1/";
+    const RESOURCE = "posts"; 
+    const API_URL = BASE_URL + RESOURCE;
+
+    let currentUser = { name: "Пользователь", avatarSeed: "user" + Math.floor(Math.random()*1000) };
+    let activeChatPartner = ""; 
+    let allServerPosts = [];
+
+    function initProfile() {
+        const saved = localStorage.getItem('itp_user');
+        if (saved) {
+            currentUser = JSON.parse(saved);
+        } else {
+            currentUser.name = "Пользователь_" + Math.floor(Math.random() * 9000 + 1000);
+            localStorage.setItem('itp_user', JSON.stringify(currentUser));
+        }
+        updateProfileUI();
+    }
+
+    function updateProfileUI() {
+        const avatarUrl = `https://robohash.org{currentUser.avatarSeed}?set=set4`;
+        document.getElementById('headerUserName').innerText = currentUser.name;
+        document.getElementById('headerUserAvatar').src = avatarUrl;
+        document.getElementById('profileAvatarImg').src = avatarUrl;
+        document.getElementById('profileNameInput').value = currentUser.name;
+    }
+
+    function saveProfile() {
+        const newName = document.getElementById('profileNameInput').value.trim();
+        if(newName === "") return alert("Имя не может быть пустым!");
+        currentUser.name = newName;
+        currentUser.avatarSeed = encodeURIComponent(newName);
+        localStorage.setItem('itp_user', JSON.stringify(currentUser));
+        updateProfileUI();
+        alert("Профиль успешно сохранен!");
+        switchScreen('feed');
+        loadData();
+    }
+
+    function switchScreen(screenName) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        
+        document.getElementById(`screen-${screenName}`).classList.add('active');
+        document.getElementById(`nav-${screenName}`).classList.add('active');
+
+        if(screenName === 'chats' && activeChatPartner) {
+            renderDirectMessages();
+        }
+    }
+
+    async function loadData() {
+        try {
+            const response = await fetch(API_URL);
+            if (!response.ok) throw new Error();
+            allServerPosts = await response.json();
+            
+            renderFeed();
+            if(activeChatPartner) {
+                renderDirectMessages();
+            }
+        } catch (e) {
+            document.getElementById('postsContainer').innerHTML = "<p style='text-align:center;color:#ff3333;'>Ошибка синхронизации с базой ИТП.</p>";
+        }
+    }
+    function renderFeed() {
+        const container = document.getElementById('postsContainer');
+        container.innerHTML = "";
+
+        const publicPosts = allServerPosts.filter(p => !p.name.includes("|||[CHAT:"));
+        
+        if (publicPosts.length === 0) {
+            container.innerHTML = "<p style='text-align:center;color:#888;margin-top:20px;'>В ИТП пока нет публикаций.</p>";
+            return;
+        }
+
+        publicPosts.sort((a, b) => Number(b.id) - Number(a.id));
+
+        let html = "";
+        publicPosts.forEach(p => {
+            let author = "Аноним";
+            let content = p.name;
+            let seed = "default";
+            
+            let likesCount = p.avatar;
+            if (!likesCount || isNaN(likesCount) || String(likesCount).includes("http")) {
+                likesCount = 0;
+            }
+
+            if (p.name && p.name.includes("|||")) {
+                const parts = p.name.split("|||");
+                author = parts[0];
+                content = parts[1];
+                seed = parts[2] || "default";
+            }
+
+            const localLikes = JSON.parse(localStorage.getItem('itp_liked') || "[]");
+            const isLiked = localLikes.includes(p.id);
+
+            // Кнопка "Удалить" появится у каждого НОВОГО поста, который написали именно вы
+            let deleteBtnHtml = "";
+            if (author === currentUser.name) {
+                deleteBtnHtml = `<div class="action-btn" style="color: #ff3333; margin-left: auto;" onclick="deletePost('${p.id}')">🗑️ Удалить</div>`;
+            }
+
+            html += `
+                <div class="post">
+                    <div class="post-header">
+                        <img class="post-avatar" src="https://robohash.org{seed}?set=set4" alt="">
+                        <div class="author-details">
+                            <span class="author-name">${author}</span>
+                        </div>
+                    </div>
+                    <div class="post-content">${content || "Пустое сообщение"}</div>
+                    <div class="post-actions">
+                        <div class="action-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${p.id}', ${likesCount})">
+                            ❤️ <span id="like-count-${p.id}">${likesCount}</span>
+                        </div>
+                        ${author !== currentUser.name ? `
+                        <div class="action-btn chat-link" onclick="startChat('\${author}')">
+                            💬 Личное сообщение
+                        </div>` : ''}
+                        ${deleteBtnHtml}
+                    </div>
+                </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    async function addPost() {
+        const txt = document.getElementById('postText').value.trim();
+        if (txt === "") return;
+
+        const packedData = `${currentUser.name}|||${txt}|||${currentUser.avatarSeed}`;
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: packedData, avatar: 0 })
+            });
+            if (!response.ok) throw new Error();
+            document.getElementById('postText').value = "";
+            loadData();
+        } catch (e) {
+            alert("Не удалось отправить публикацию.");
+        }
+    }
+    async function deletePost(postId) {
+        if (!confirm("Вы уверены, что хотите удалить этот пост?")) return;
+        try {
+            const response = await fetch(`${API_URL}/${postId}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error();
+            allServerPosts = allServerPosts.filter(p => p.id !== postId);
+            renderFeed();
+        } catch (e) {
+            alert("Не удалось удалить пост.");
+        }
+    }
+
+    async function toggleLike(postId, currentLikes) {
+        let localLikes = JSON.parse(localStorage.getItem('itp_liked') || "[]");
+        const hasLiked = localLikes.includes(postId);
+        let newLikesCount = currentLikes;
+
+        if (hasLiked) {
+            localLikes = localLikes.filter(id => id !== postId);
+            newLikesCount = Math.max(0, newLikesCount - 1);
+        } else {
+            localLikes.push(postId);
+            newLikesCount += 1;
+        }
+
+        localStorage.setItem('itp_liked', JSON.stringify(localLikes));
+        
+        const el = document.getElementById(`like-count-${postId}`);
+        if(el) el.innerText = newLikesCount;
+        el.parentElement.classList.toggle('liked', !hasLiked);
+
+        try {
+            await fetch(`${API_URL}/${postId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ avatar: newLikesCount })
+            });
+            const pIndex = allServerPosts.findIndex(p => p.id === postId);
+            if(pIndex !== -1) allServerPosts[pIndex].avatar = newLikesCount;
+        } catch(e) {
+            console.error("Сбой синхронизации лайков", e);
+        }
+    }
+
+    function startChat(partnerName) {
+        activeChatPartner = partnerName;
+        switchScreen('chats');
+    }
+
+    function renderDirectMessages() {
+        document.getElementById('activeChatTitle').innerText = `Диалог с: ${activeChatPartner}`;
+        const container = document.getElementById('chatMessagesContainer');
+        container.innerHTML = "";
+
+        const chatTag1 = `[CHAT:${currentUser.name}->${activeChatPartner}]`;
+        const chatTag2 = `[CHAT:${activeChatPartner}->${currentUser.name}]`;
+
+        const messages = allServerPosts.filter(p => p.name.includes("|||" + chatTag1) || p.name.includes("|||" + chatTag2));
+        
+        messages.sort((a, b) => Number(a.id) - Number(b.id));
+
+        if(messages.length === 0) {
+            container.innerHTML = "<p style='text-align:center;color:#888;margin-top:40px;'>Нет сообщений. Напишите первым!</p>";
+            return;
+        }
+
+        messages.forEach(m => {
+            const parts = m.name.split("|||");
+            const messageContent = parts[1].replace(/\[CHAT:.*?\]/g, "").trim();
+            const isOutgoing = m.name.includes(chatTag1);
+
+            const div = document.createElement('div');
+            div.className = `msg ${isOutgoing ? 'outgoing' : 'incoming'}`;
+            div.innerText = messageContent;
+            container.appendChild(div);
+        });
+
+        container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendDirectMessage() {
+        const input = document.getElementById('chatMessageInput');
+        const txt = input.value.trim();
+        if(txt === "" || !activeChatPartner) return;
+
+        const chatTag = `[CHAT:${currentUser.name}->${activeChatPartner}]`;
+        const packedData = `${currentUser.name}|||${chatTag} ${txt}|||${currentUser.avatarSeed}`;
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: packedData, avatar: 0 })
+            });
+            if (!response.ok) throw new Error();
+            input.value = "";
+            await loadData();
+        } catch(e) {
+            alert("Не удалось отправить сообщение");
+        }
+    }
+
+    // Автоматическое фоновое обновление раз в 5 секунд
+    setInterval(loadData, 5000);
+
+    // Запуск всего функционала ИТП
+    initProfile();
+    loadData();
+    async function addPost() {
+        const btn = document.querySelector('.feed-form button');
+        const txt = document.getElementById('postText').value.trim();
+        if (txt === "") return;
+
+        // ЗАЩИТА 1: Блокируем кнопку, чтобы нельзя было кликать по 100 раз
+        btn.disabled = true;
+        btn.style.opacity = "0.5";
+        btn.innerText = "Отправка...";
+
+        // ЗАЩИТА 2: Проверяем забитость базы перед публикацией
+        if (allServerPosts.length >= 80) {
+            // Ищем самый первый (старый) пост по минимальному ID
+            const oldestPost = allServerPosts.reduce((prev, curr) => Number(prev.id) < Number(curr.id) ? prev : curr);
+            try {
+                // Тихо удаляем старый пост, освобождая место на сервере
+                await fetch(`${API_URL}/${oldestPost.id}`, { method: 'DELETE' });
+            } catch(e) { console.error("Не удалось освободить место", e); }
+        }
+
+        const packedData = `${currentUser.name}|||${txt}|||${currentUser.avatarSeed}`;
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: packedData, avatar: 0 })
+            });
+            if (!response.ok) throw new Error();
+            document.getElementById('postText').value = "";
+            await loadData();
+        } catch (e) {
+            alert("Не удалось отправить публикацию.");
+        } finally {
+            // Разблокируем кнопку только через 4 секунды после попытки отправки
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.style.opacity = "1";
+                btn.innerText = "Опубликовать";
+            }, 4000);
+        }
+    }
+
+</script>
+</body>
+</html>
