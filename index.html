@@ -55,7 +55,16 @@
         <div id="postsContainer">Загрузка ИТП...</div>
     </div>
 
-    <!-- ВКЛАДКА 2: ЛИЧНЫЕ ЧАТЫ -->
+    <!-- ВКЛАДКА 2: ЛЮДИ -->
+    <div id="screen-people" class="screen">
+        <div class="people-search">
+            <input type="text" id="peopleSearchInput" placeholder="🔍 Поиск по логину или имени..."
+                   maxlength="30" oninput="renderPeopleList()">
+        </div>
+        <div id="peopleContainer">Загрузка списка людей...</div>
+    </div>
+
+    <!-- ВКЛАДКА 3: ЧАТЫ -->
     <div id="screen-chats" class="screen">
         <div class="chat-layout">
             <div id="activeChatTitle" class="chat-header-title">Выберите пользователя в Ленте для диалога</div>
@@ -68,7 +77,7 @@
         </div>
     </div>
 
-    <!-- ВКЛАДКА 3: НАСТРОЙКИ ПРОФИЛЯ -->
+    <!-- ВКЛАДКА 4: СВОЙ ПРОФИЛЬ -->
     <div id="screen-profile" class="screen">
         <div class="profile-card">
             <div class="avatar-wrapper" onclick="document.getElementById('avatarFileInput').click()">
@@ -79,7 +88,26 @@
 
             <input type="text" id="profileNameInput" class="profile-input" placeholder="Ваше имя" maxlength="30">
 
+            <textarea id="profileBioInput" class="profile-bio-input" placeholder="О себе (до 200 символов)"
+                      maxlength="200"></textarea>
+
             <p class="profile-login">Логин: <span id="profileLoginValue">—</span></p>
+            <p class="profile-login">В ИТП с: <span id="profileCreatedAt">—</span></p>
+
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <span class="stat-num" id="myPostsCount">0</span>
+                    <span class="stat-label">Постов</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-num" id="myLikesCount">0</span>
+                    <span class="stat-label">Лайков</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-num" id="myFollowingCount">0</span>
+                    <span class="stat-label">Подписок</span>
+                </div>
+            </div>
 
             <div class="profile-buttons">
                 <button onclick="saveProfile()" id="saveProfileBtn">Сохранить профиль</button>
@@ -89,10 +117,51 @@
         </div>
     </div>
 
+    <!-- ВКЛАДКА 5: ЧУЖОЙ ПРОФИЛЬ -->
+    <div id="screen-user" class="screen">
+        <div class="profile-card">
+            <img id="userProfileAvatar" class="user-profile-avatar" src="" alt="Аватар">
+            <h3 class="user-profile-name">
+                <span id="userProfileName">—</span>
+                <span id="userProfileBadge"></span>
+            </h3>
+            <p class="profile-login">Логин: <span id="userProfileLogin">—</span></p>
+            <p class="profile-login">В ИТП с: <span id="userProfileCreatedAt">—</span></p>
+            <p id="userProfileBio" class="user-profile-bio"></p>
+
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <span class="stat-num" id="userPostsCount">0</span>
+                    <span class="stat-label">Постов</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-num" id="userLikesCount">0</span>
+                    <span class="stat-label">Лайков</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-num" id="userFollowingCount">0</span>
+                    <span class="stat-label">Подписок</span>
+                </div>
+            </div>
+
+            <div class="profile-buttons">
+                <button id="userFollowBtn" onclick="toggleFollowViewedUser()">Подписаться</button>
+                <button onclick="openChatWithViewedUser()">💬 Написать сообщение</button>
+                <button class="btn-secondary" onclick="switchScreen('feed')">← Назад в ленту</button>
+            </div>
+        </div>
+
+        <h4 class="user-posts-title">Посты пользователя</h4>
+        <div id="userPostsContainer"></div>
+    </div>
+
     <!-- Нижнее меню навигации -->
     <nav id="mainNav" style="display:none;">
         <div class="nav-item active" id="nav-feed" onclick="switchScreen('feed')">
             <span class="nav-icon">📰</span><span>Лента</span>
+        </div>
+        <div class="nav-item" id="nav-people" onclick="switchScreen('people')">
+            <span class="nav-icon">👥</span><span>Люди</span>
         </div>
         <div class="nav-item" id="nav-chats" onclick="switchScreen('chats')">
             <span class="nav-icon">💬</span><span>Чаты</span>
@@ -250,6 +319,7 @@
         align-items: center;
         gap: 10px;
         margin-bottom: 10px;
+        cursor: pointer;
     }
     .post-avatar {
         width: 40px; height: 40px;
@@ -267,6 +337,7 @@
         align-items: center;
         gap: 4px;
     }
+    .author-name:hover { text-decoration: underline; }
     .post-content {
         font-size: 15px;
         line-height: 1.4;
@@ -324,6 +395,7 @@
         border-radius: 12px;
         padding: 20px;
         text-align: center;
+        margin-bottom: 15px;
     }
     .avatar-wrapper {
         position: relative;
@@ -370,17 +442,131 @@
         font-family: inherit;
     }
     .profile-input:focus { border-color: #ff4d4d; }
+    .profile-bio-input {
+        width: 100%;
+        min-height: 60px;
+        max-height: 120px;
+        padding: 10px;
+        background: #18191a;
+        border: 1px solid #3a3b3c;
+        color: #fff;
+        border-radius: 8px;
+        font-size: 14px;
+        margin-bottom: 10px;
+        outline: none;
+        font-family: inherit;
+        resize: vertical;
+    }
+    .profile-bio-input:focus { border-color: #ff4d4d; }
     .profile-login {
         font-size: 13px;
         color: #888;
-        margin-bottom: 15px;
+        margin-bottom: 6px;
     }
     .profile-login span { color: #b0b3b8; font-weight: bold; }
-    .profile-buttons { display: flex; flex-direction: column; gap: 10px; }
+    .profile-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
     .btn-secondary { background: #3a3b3c; }
     .btn-secondary:hover:not(:disabled) { background: #4a4b4c; }
     .logout-btn { background: #5a1f1f; }
     .logout-btn:hover:not(:disabled) { background: #7a2a2a; }
+
+    .profile-stats {
+        display: flex;
+        justify-content: center;
+        gap: 25px;
+        margin: 12px 0;
+        padding: 12px 0;
+        border-top: 1px solid #3a3b3c;
+        border-bottom: 1px solid #3a3b3c;
+    }
+    .stat-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .stat-num { font-size: 20px; font-weight: bold; color: #ff4d4d; }
+    .stat-label { font-size: 12px; color: #888; }
+
+    .user-profile-avatar {
+        width: 100px; height: 100px;
+        border-radius: 50%;
+        border: 3px solid #ff4d4d;
+        object-fit: cover;
+        background: #3a3b3c;
+        margin-bottom: 15px;
+    }
+    .user-profile-name {
+        font-size: 20px;
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 5px;
+    }
+    .user-profile-bio {
+        font-size: 14px;
+        color: #b0b3b8;
+        margin: 10px 20px;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+    .user-posts-title {
+        font-size: 15px;
+        color: #b0b3b8;
+        margin: 15px 0 10px;
+        font-weight: normal;
+    }
+
+    .people-search { margin-bottom: 15px; }
+    .people-search input {
+        width: 100%;
+        padding: 12px 14px;
+        background: #242526;
+        border: 1px solid #3a3b3c;
+        color: #fff;
+        border-radius: 10px;
+        outline: none;
+        font-size: 15px;
+        font-family: inherit;
+    }
+    .people-search input:focus { border-color: #ff4d4d; }
+
+    .person-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #242526;
+        border: 1px solid #3a3b3c;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: 0.15s;
+    }
+    .person-card:hover { border-color: #ff4d4d; }
+    .person-avatar {
+        width: 44px; height: 44px;
+        border-radius: 50%;
+        background: #3a3b3c;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+    .person-info { flex: 1; min-width: 0; }
+    .person-name {
+        color: #fff;
+        font-weight: bold;
+        font-size: 15px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 2px;
+    }
+    .person-login { font-size: 12px; color: #888; }
+    .person-follow-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+        border-radius: 6px;
+        flex-shrink: 0;
+    }
+    .person-follow-btn.following { background: #3a3b3c; }
+    .person-follow-btn.following:hover { background: #4a4b4c; }
 
     .chat-layout {
         display: flex;
@@ -462,7 +648,7 @@
         align-items: center;
         gap: 4px;
         cursor: pointer;
-        width: 33%;
+        width: 25%;
         text-align: center;
         user-select: none;
     }
@@ -482,9 +668,9 @@
     const MAX_POST_LEN  = 2000;
     const MAX_CHAT_LEN  = 1000;
     const MAX_NAME_LEN  = 30;
+    const MAX_BIO_LEN   = 200;
     const CHAT_SEP      = "|||";
 
-    // Галочки для «официальных» логинов: blue / gold / green
     const VERIFIED_LOGINS = {
         "android":   "blue",
         "webcode":   "gold",
@@ -498,11 +684,16 @@
     let currentUserId  = null;
     let pendingAvatar  = null;
 
-    let activeChatPartner = null;   // { id, name }
+    let activeChatPartner = null;
+    let viewedUser        = null;
 
     let allServerPosts    = [];
+    let allUsers          = [];
     let lastPostsHash     = '';
     let pollInterval      = null;
+
+    // Флаг: пользователь сейчас редактирует профиль (защита от затирания)
+    let isEditingProfile = false;
 
     /* ============================================================
        УТИЛИТЫ
@@ -525,9 +716,7 @@
     }
 
     function getUserAvatarUrl(seed, customAvatar) {
-        if (customAvatar && String(customAvatar).startsWith("data:image")) {
-            return customAvatar;
-        }
+        if (customAvatar && String(customAvatar).startsWith("data:image")) return customAvatar;
         return `https://robohash.org/${encodeURIComponent(seed || 'default')}?set=set4`;
     }
 
@@ -537,6 +726,27 @@
         btn.disabled = true;
         if (text) btn.innerText = text;
         return () => { btn.disabled = false; btn.innerText = old; };
+    }
+
+    function parseFollowing(user) {
+        if (!user || !user.following) return [];
+        try {
+            const arr = JSON.parse(user.following);
+            return Array.isArray(arr) ? arr.map(String) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function formatDate(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return "—";
+        return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
+    }
+
+    function isBadFaker(str) {
+        return !str || String(str).startsWith("Invalid faker method");
     }
 
     /* ============================================================
@@ -564,7 +774,7 @@
             }
 
             saveSession(user);
-            enterApp();
+            await enterApp();
         } catch (e) {
             errEl.textContent = "Ошибка сети: " + e.message;
             console.error(e);
@@ -582,23 +792,17 @@
         const btn    = document.getElementById('regBtn');
         errEl.textContent = "";
 
-        if (!/^[a-z0-9_]{3,20}$/.test(login)) {
-            errEl.textContent = "Логин: 3-20 символов, латиница/цифры/_"; return;
-        }
-        if (name.length < 2 || name.length > MAX_NAME_LEN) {
-            errEl.textContent = "Имя: от 2 до 30 символов"; return;
-        }
+        if (!/^[a-z0-9_]{3,20}$/.test(login)) { errEl.textContent = "Логин: 3-20 символов, латиница/цифры/_"; return; }
+        if (name.length < 2 || name.length > MAX_NAME_LEN) { errEl.textContent = "Имя: от 2 до 30 символов"; return; }
         if (pass1.length < 4) { errEl.textContent = "Пароль минимум 4 символа"; return; }
-        if (pass1 !== pass2)  { errEl.textContent = "Пароли не совпадают";       return; }
+        if (pass1 !== pass2)  { errEl.textContent = "Пароли не совпадают"; return; }
 
         const unlock = lockBtn(btn, "Создаём...");
         try {
             const check = await fetch(`${USERS_URL}?login=${encodeURIComponent(login)}`);
             if (check.ok) {
                 const found = await check.json();
-                if (Array.isArray(found) && found.length > 0) {
-                    errEl.textContent = "Такой логин уже занят"; return;
-                }
+                if (Array.isArray(found) && found.length > 0) { errEl.textContent = "Такой логин уже занят"; return; }
             }
 
             const verified = VERIFIED_LOGINS[login] || "";
@@ -609,7 +813,10 @@
                 name: name,
                 avatarSeed: login,
                 customAvatar: "",
-                isVerified: verified
+                isVerified: verified,
+                bio: "",
+                createdAt: new Date().toISOString(),
+                following: "[]"
             };
 
             const res = await fetch(USERS_URL, {
@@ -626,7 +833,7 @@
             const created = await res.json();
 
             saveSession(created);
-            enterApp();
+            await enterApp();
         } catch (e) {
             errEl.textContent = "Ошибка: " + e.message;
             console.error("Register error:", e);
@@ -636,15 +843,20 @@
     }
 
     function saveSession(user) {
+        let safeName = user.name;
+        if (isBadFaker(safeName)) safeName = user.login || "Пользователь";
+
         currentUser = {
             id: user.id,
             login: user.login,
-            name: user.name,
+            name: safeName,
             avatarSeed: user.avatarSeed || user.login,
             customAvatar: (user.customAvatar && String(user.customAvatar).startsWith("data:image"))
-                ? user.customAvatar
-                : null,
-            isVerified: user.isVerified || ""
+                ? user.customAvatar : null,
+            isVerified: user.isVerified || "",
+            bio: user.bio || "",
+            createdAt: user.createdAt || "",
+            following: user.following || "[]"
         };
         currentUserId = user.id;
         localStorage.setItem('itp_session', JSON.stringify(currentUser));
@@ -667,12 +879,10 @@
     function logout() {
         if (!confirm("Выйти из аккаунта?")) return;
         localStorage.removeItem('itp_session');
-        currentUser   = null;
-        currentUserId = null;
-        pendingAvatar = null;
-        activeChatPartner = null;
-        allServerPosts = [];
-        lastPostsHash = '';
+        currentUser = null; currentUserId = null; pendingAvatar = null;
+        activeChatPartner = null; viewedUser = null;
+        allServerPosts = []; allUsers = []; lastPostsHash = '';
+        isEditingProfile = false;
         if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
 
         document.getElementById('authLogin').value = "";
@@ -689,17 +899,41 @@
         switchScreen('auth');
     }
 
-    function enterApp() {
+    async function enterApp() {
         updateProfileUI();
         document.getElementById('headerUserBadge').style.display = 'flex';
         document.getElementById('mainNav').style.display = 'flex';
         switchScreen('feed');
+        await loadUsers();
         loadData(true);
         startPolling();
     }
 
     /* ============================================================
-       ПРОФИЛЬ
+       ЗАГРУЗКА ПОЛЬЗОВАТЕЛЕЙ
+       ============================================================ */
+    async function loadUsers() {
+        try {
+            const res = await fetch(USERS_URL);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            if (!Array.isArray(data)) throw new Error('Bad users data');
+            allUsers = data;
+
+            // ВАЖНО: НЕ синхронизируем currentUser с сервером на каждом поллинге.
+            // Это затирало бы изменения пользователя, пока он редактирует профиль.
+            // Синхронизация происходит только при логине/регистрации/сохранении.
+
+            renderPeopleList();
+        } catch (e) {
+            console.error("loadUsers error:", e);
+            document.getElementById('peopleContainer').innerHTML =
+                "<p style='text-align:center;color:#ff3333;'>Не удалось загрузить список пользователей.</p>";
+        }
+    }
+
+    /* ============================================================
+       СВОЙ ПРОФИЛЬ
        ============================================================ */
     function updateProfileUI() {
         if (!currentUser) return;
@@ -710,24 +944,44 @@
 
         document.getElementById('headerUserAvatar').src = avatarUrl;
         document.getElementById('profileAvatarImg').src = avatarUrl;
-        document.getElementById('profileNameInput').value = currentUser.name;
+
+        // ВАЖНО: не перезаписываем поля, пока пользователь их редактирует
+        const nameInput = document.getElementById('profileNameInput');
+        const bioInput  = document.getElementById('profileBioInput');
+        if (document.activeElement !== nameInput) nameInput.value = currentUser.name;
+        if (document.activeElement !== bioInput)  bioInput.value  = currentUser.bio || "";
+
         document.getElementById('profileLoginValue').textContent = currentUser.login || "—";
+        document.getElementById('profileCreatedAt').textContent = formatDate(currentUser.createdAt);
+
+        updateMyStats();
+    }
+
+    function updateMyStats() {
+        if (!currentUser) return;
+        let postCount = 0, likeCount = 0;
+
+        allServerPosts.forEach(p => {
+            if (!p || !p.name) return;
+            const parts = p.name.split(CHAT_SEP);
+            const body = parts[1] || "";
+            if (body.startsWith("[CHAT:")) return;
+            if (String(parts[5]) !== String(currentUserId)) return;
+            postCount++;
+            const n = Number(p.avatar);
+            if (!isNaN(n) && n > 0) likeCount += n;
+        });
+
+        document.getElementById('myPostsCount').textContent = postCount;
+        document.getElementById('myLikesCount').textContent = likeCount;
+        document.getElementById('myFollowingCount').textContent = parseFollowing(currentUser).length;
     }
 
     function handleAvatarUpload(event) {
         const file = event.target.files && event.target.files[0];
         if (!file) return;
-
-        if (!file.type.startsWith('image/')) {
-            alert("Пожалуйста, выберите изображение!");
-            event.target.value = "";
-            return;
-        }
-        if (file.size > 5 * 1024 * 1024) {
-            alert("Картинка слишком большая! Максимум 5 МБ.");
-            event.target.value = "";
-            return;
-        }
+        if (!file.type.startsWith('image/')) { alert("Пожалуйста, выберите изображение!"); event.target.value = ""; return; }
+        if (file.size > 5 * 1024 * 1024) { alert("Картинка слишком большая! Максимум 5 МБ."); event.target.value = ""; return; }
 
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -736,53 +990,49 @@
                 try {
                     const canvas = document.createElement('canvas');
                     const size = 200;
-                    canvas.width = size;
-                    canvas.height = size;
+                    canvas.width = size; canvas.height = size;
                     const ctx = canvas.getContext('2d');
-
                     const minSide = Math.min(img.width, img.height);
                     const sx = (img.width - minSide) / 2;
                     const sy = (img.height - minSide) / 2;
                     ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
-
                     pendingAvatar = canvas.toDataURL('image/jpeg', 0.85);
-
                     document.getElementById('profileAvatarImg').src = pendingAvatar;
                     document.getElementById('headerUserAvatar').src = pendingAvatar;
-
                     alert("Аватар подготовлен. Нажмите «Сохранить профиль».");
-                } catch (err) {
-                    alert("Не удалось обработать изображение.");
-                }
+                } catch (err) { alert("Не удалось обработать изображение."); }
             };
             img.onerror = () => alert("Не удалось открыть файл как изображение.");
             img.src = e.target.result;
         };
         reader.onerror = () => alert("Ошибка чтения файла.");
         reader.readAsDataURL(file);
-
         event.target.value = "";
     }
 
     function resetAvatar() {
         if (!confirm("Сбросить аватар на стандартный?")) return;
         pendingAvatar = "";
-        document.getElementById('profileAvatarImg').src =
-            getUserAvatarUrl(currentUser.avatarSeed, null);
-        document.getElementById('headerUserAvatar').src =
-            getUserAvatarUrl(currentUser.avatarSeed, null);
+        document.getElementById('profileAvatarImg').src = getUserAvatarUrl(currentUser.avatarSeed, null);
+        document.getElementById('headerUserAvatar').src = getUserAvatarUrl(currentUser.avatarSeed, null);
     }
 
     async function saveProfile() {
         if (!currentUser) return;
-        const newName = document.getElementById('profileNameInput').value.trim();
-        if (newName.length < 2 || newName.length > MAX_NAME_LEN) {
-            return alert("Имя от 2 до 30 символов");
-        }
+        const nameInput = document.getElementById('profileNameInput');
+        const bioInput  = document.getElementById('profileBioInput');
+        const newName = nameInput.value.trim();
+        const newBio  = bioInput.value.trim();
+
+        if (newName.length < 2 || newName.length > MAX_NAME_LEN) return alert("Имя от 2 до 30 символов");
+        if (newBio.length > MAX_BIO_LEN) return alert(`Био до ${MAX_BIO_LEN} символов`);
 
         const avatarToSave = (pendingAvatar !== null) ? pendingAvatar : (currentUser.customAvatar || "");
         const btn = document.getElementById('saveProfileBtn');
         const unlock = lockBtn(btn, "Сохраняем...");
+
+        // Пока сохраняем — блокируем синхронизацию из поллинга
+        isEditingProfile = true;
 
         try {
             const res = await fetch(`${USERS_URL}/${currentUserId}`, {
@@ -790,28 +1040,37 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: newName,
+                    bio: newBio,
                     customAvatar: avatarToSave,
                     avatarSeed: currentUser.avatarSeed || currentUser.login
                 })
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-            currentUser.name = newName;
-            currentUser.customAvatar = avatarToSave && avatarToSave.startsWith("data:image")
-                ? avatarToSave
-                : null;
+            const updated = await res.json();
+
+            currentUser.name = updated.name || newName;
+            currentUser.bio = updated.bio || newBio;
+            currentUser.customAvatar = avatarToSave && avatarToSave.startsWith("data:image") ? avatarToSave : null;
             pendingAvatar = null;
 
             localStorage.setItem('itp_session', JSON.stringify(currentUser));
             updateProfileUI();
 
+            // Обновим запись в локальном кэше allUsers
+            const idx = allUsers.findIndex(u => String(u.id) === String(currentUserId));
+            if (idx !== -1) {
+                allUsers[idx].name = currentUser.name;
+                allUsers[idx].bio = currentUser.bio;
+            }
+
             alert("Профиль сохранён!");
-            switchScreen('feed');
-            loadData(true);
+            // НЕ вызываем switchScreen, чтобы не выкидывать с экрана
         } catch (e) {
             alert("Не удалось сохранить профиль: " + e.message);
             console.error(e);
         } finally {
+            isEditingProfile = false;
             unlock();
         }
     }
@@ -828,13 +1087,13 @@
         if (screenEl) screenEl.classList.add('active');
         if (navEl)    navEl.classList.add('active');
 
-        if (screenName === 'chats' && activeChatPartner) {
-            renderDirectMessages();
-        }
+        if (screenName === 'chats' && activeChatPartner) renderDirectMessages();
+        if (screenName === 'profile') updateMyStats();
+        if (screenName === 'people') renderPeopleList();
     }
 
     /* ============================================================
-       ЗАГРУЗКА ДАННЫХ
+       ЗАГРУЗКА ПОСТОВ
        ============================================================ */
     async function loadData(force = false) {
         if (!currentUser) return;
@@ -853,6 +1112,8 @@
             if (changed) {
                 renderFeed();
                 if (activeChatPartner) renderDirectMessages();
+                updateMyStats();
+                if (viewedUser) renderUserProfile(viewedUser);
             }
         } catch (e) {
             if (force) {
@@ -863,10 +1124,6 @@
         }
     }
 
-    /* ============================================================
-       РАЗБОР ПОСТА
-       name ||| content ||| avatarSeed ||| customAvatar ||| isVerified ||| authorId
-       ============================================================ */
     function unpackPost(p) {
         const parts = (p.name || "").split(CHAT_SEP);
         return {
@@ -905,19 +1162,15 @@
 
         publicPosts.forEach(p => {
             const info = unpackPost(p);
-
             let likesCount = Number(p.avatar);
-            if (!likesCount || isNaN(likesCount) || String(p.avatar).includes("http")) {
-                likesCount = 0;
-            }
+            if (!likesCount || isNaN(likesCount) || String(p.avatar).includes("http")) likesCount = 0;
 
             let avatarSrc;
             if (info.authorId && String(info.authorId) === String(currentUserId)) {
                 avatarSrc = getUserAvatarUrl(currentUser.avatarSeed, currentUser.customAvatar);
             } else {
                 avatarSrc = info.customAvatar && info.customAvatar.startsWith("data:image")
-                    ? info.customAvatar
-                    : getUserAvatarUrl(info.seed);
+                    ? info.customAvatar : getUserAvatarUrl(info.seed);
             }
 
             const badge   = verifiedBadgeFromType(info.isVerified);
@@ -928,7 +1181,8 @@
             postEl.className = 'post';
 
             const headerHtml = `
-                <div class="post-header">
+                <div class="post-header"
+                     onclick="openUserProfile(${JSON.stringify(info.author).replace(/"/g, '&quot;')}, ${JSON.stringify(info.authorId).replace(/"/g, '&quot;')}, ${JSON.stringify(info.seed).replace(/"/g, '&quot;')}, ${JSON.stringify(info.customAvatar).replace(/"/g, '&quot;')}, ${JSON.stringify(info.isVerified).replace(/"/g, '&quot;')})">
                     <img class="post-avatar" src="${escapeHtml(avatarSrc)}" alt=""
                          onerror="this.src='https://robohash.org/default?set=set4'">
                     <div class="author-details">
@@ -947,11 +1201,11 @@
                     </div>
                     ${!isMine ? `
                     <div class="action-btn chat-link"
-                         onclick="startChat(${JSON.stringify(info.author).replace(/"/g, '&quot;')}, ${JSON.stringify(info.authorId).replace(/"/g, '&quot;')})">
+                         onclick="event.stopPropagation(); startChat(${JSON.stringify(info.author).replace(/"/g, '&quot;')}, ${JSON.stringify(info.authorId).replace(/"/g, '&quot;')})">
                         💬 Личное сообщение
                     </div>` : ''}
                     ${isMine ? `
-                    <div class="action-btn delete-btn" onclick="deletePost('${escapeHtml(p.id)}')">
+                    <div class="action-btn delete-btn" onclick="event.stopPropagation(); deletePost('${escapeHtml(p.id)}')">
                         🗑️ Удалить
                     </div>` : ''}
                 </div>`;
@@ -971,7 +1225,6 @@
         if (txt.length > MAX_POST_LEN) return alert("Пост слишком длинный");
 
         const unlock = lockBtn(btn, "Отправка...");
-
         try {
             if (allServerPosts.length >= MAX_POSTS) {
                 const myOldPosts = allServerPosts
@@ -1018,24 +1271,21 @@
         const post = allServerPosts.find(p => String(p.id) === String(postId));
         if (!post) return;
         const info = unpackPost(post);
-
-        if (String(info.authorId) !== String(currentUserId)) {
-            return alert("Вы можете удалять только свои посты.");
-        }
+        if (String(info.authorId) !== String(currentUserId)) return alert("Вы можете удалять только свои посты.");
 
         if (!confirm("Вы уверены, что хотите удалить этот пост?")) return;
         try {
             const response = await fetch(`${API_URL}/${postId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error();
             allServerPosts = allServerPosts.filter(p => String(p.id) !== String(postId));
-            renderFeed();
+            renderFeed(); updateMyStats();
+            if (viewedUser) renderUserProfile(viewedUser);
         } catch (e) {
             alert("Не удалось удалить пост.");
         }
     }
 
     const likeLocks = new Set();
-
     async function toggleLike(postId, currentLikes) {
         const postIdStr = String(postId);
         if (likeLocks.has(postIdStr)) return;
@@ -1043,9 +1293,7 @@
 
         let localLikes = JSON.parse(localStorage.getItem('itp_liked') || "[]");
         const hasLiked = localLikes.includes(postIdStr);
-        const newLikesCount = hasLiked
-            ? Math.max(0, currentLikes - 1)
-            : currentLikes + 1;
+        const newLikesCount = hasLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
 
         if (hasLiked) localLikes = localLikes.filter(id => id !== postIdStr);
         else localLikes.push(postIdStr);
@@ -1065,11 +1313,11 @@
             if (!res.ok) throw new Error('PUT failed');
             const pIndex = allServerPosts.findIndex(p => String(p.id) === postIdStr);
             if (pIndex !== -1) allServerPosts[pIndex].avatar = newLikesCount;
+            updateMyStats();
         } catch (e) {
             if (hasLiked) localLikes.push(postIdStr);
             else localLikes = localLikes.filter(id => id !== postIdStr);
             localStorage.setItem('itp_liked', JSON.stringify(localLikes));
-
             if (el) el.innerText = currentLikes;
             if (parent) parent.classList.toggle('liked', hasLiked);
             console.error("Не удалось сохранить лайк", e);
@@ -1088,6 +1336,226 @@
     }
 
     /* ============================================================
+       СПИСОК ЛЮДЕЙ
+       ============================================================ */
+    function renderPeopleList() {
+        const container = document.getElementById('peopleContainer');
+        if (!container || !currentUser) return;
+
+        const query = (document.getElementById('peopleSearchInput').value || "").trim().toLowerCase();
+
+        const filtered = allUsers
+            .filter(u => String(u.id) !== String(currentUserId))
+            .filter(u => {
+                if (!query) return true;
+                return (u.login && u.login.toLowerCase().includes(query)) ||
+                       (u.name && u.name.toLowerCase().includes(query));
+            })
+            .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+        if (filtered.length === 0) {
+            container.innerHTML = "<p style='text-align:center;color:#888;margin-top:20px;'>Никого не найдено.</p>";
+            return;
+        }
+
+        const myFollowing = parseFollowing(currentUser).map(String);
+
+        const frag = document.createDocumentFragment();
+        filtered.forEach(u => {
+            const avatarSrc = (u.customAvatar && String(u.customAvatar).startsWith("data:image"))
+                ? u.customAvatar
+                : getUserAvatarUrl(u.avatarSeed || u.login);
+            const badge = verifiedBadgeFromType(u.isVerified);
+            const isFollowing = myFollowing.includes(String(u.id));
+
+            let displayName = u.name;
+            if (isBadFaker(displayName)) displayName = u.login || "Аноним";
+
+            const card = document.createElement('div');
+            card.className = 'person-card';
+            card.innerHTML = `
+                <img class="person-avatar" src="${escapeHtml(avatarSrc)}" alt=""
+                     onerror="this.src='https://robohash.org/default?set=set4'">
+                <div class="person-info">
+                    <div class="person-name">${escapeHtml(displayName)}${badge}</div>
+                    <div class="person-login">@${escapeHtml(u.login || '—')}</div>
+                </div>
+                <button class="person-follow-btn ${isFollowing ? 'following' : ''}"
+                        onclick="event.stopPropagation(); toggleFollow(${JSON.stringify(u.id).replace(/"/g, '&quot;')})">
+                    ${isFollowing ? 'Отписаться' : 'Подписаться'}
+                </button>`;
+
+            card.onclick = () => {
+                openUserProfile(u.name, u.id, u.avatarSeed || u.login, u.customAvatar || "", u.isVerified || "");
+            };
+
+            frag.appendChild(card);
+        });
+        container.innerHTML = "";
+        container.appendChild(frag);
+    }
+
+    async function toggleFollow(targetId) {
+        if (!currentUser) return;
+        if (String(targetId) === String(currentUserId)) return;
+
+        let myFollowing = parseFollowing(currentUser).map(String);
+        const targetIdStr = String(targetId);
+        const has = myFollowing.includes(targetIdStr);
+
+        if (has) myFollowing = myFollowing.filter(id => id !== targetIdStr);
+        else myFollowing.push(targetIdStr);
+
+        const newFollowingStr = JSON.stringify(myFollowing);
+
+        try {
+            const res = await fetch(`${USERS_URL}/${currentUserId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ following: newFollowingStr })
+            });
+            if (!res.ok) throw new Error();
+
+            currentUser.following = newFollowingStr;
+            localStorage.setItem('itp_session', JSON.stringify(currentUser));
+
+            const idx = allUsers.findIndex(u => String(u.id) === String(currentUserId));
+            if (idx !== -1) allUsers[idx].following = newFollowingStr;
+
+            renderPeopleList();
+            updateMyStats();
+            if (viewedUser) renderUserProfile(viewedUser);
+        } catch (e) {
+            alert("Не удалось сохранить подписку");
+            console.error(e);
+        }
+    }
+
+    /* ============================================================
+       ЧУЖОЙ ПРОФИЛЬ
+       ============================================================ */
+    function openUserProfile(name, authorId, seed, customAvatar, isVerified) {
+        if (!authorId) return;
+        if (String(authorId) === String(currentUserId)) { switchScreen('profile'); return; }
+
+        viewedUser = {
+            id: String(authorId),
+            name: name || "Аноним",
+            seed: seed || "default",
+            customAvatar: customAvatar || "",
+            isVerified: isVerified || ""
+        };
+
+        switchScreen('user');
+        renderUserProfile(viewedUser);
+    }
+
+    function renderUserProfile(user) {
+        const avatarSrc = user.customAvatar && user.customAvatar.startsWith("data:image")
+            ? user.customAvatar
+            : getUserAvatarUrl(user.seed);
+
+        document.getElementById('userProfileAvatar').src = avatarSrc;
+        document.getElementById('userProfileName').textContent = user.name;
+        document.getElementById('userProfileBadge').innerHTML = verifiedBadgeFromType(user.isVerified);
+
+        const userRecord = allUsers.find(u => String(u.id) === String(user.id));
+        document.getElementById('userProfileLogin').textContent = userRecord ? (userRecord.login || "—") : "—";
+        document.getElementById('userProfileCreatedAt').textContent = userRecord ? formatDate(userRecord.createdAt) : "—";
+
+        const bioEl = document.getElementById('userProfileBio');
+        if (userRecord && userRecord.bio) {
+            bioEl.textContent = userRecord.bio;
+            bioEl.style.display = "block";
+        } else {
+            bioEl.textContent = "";
+            bioEl.style.display = "none";
+        }
+
+        const userPosts = allServerPosts.filter(p => {
+            if (!p || !p.name) return false;
+            const parts = p.name.split(CHAT_SEP);
+            const body = parts[1] || "";
+            if (body.startsWith("[CHAT:")) return false;
+            return String(parts[5]) === String(user.id);
+        });
+        userPosts.sort((a, b) => Number(b.id) - Number(a.id));
+
+        let likesTotal = 0;
+        userPosts.forEach(p => {
+            const n = Number(p.avatar);
+            if (!isNaN(n) && n > 0) likesTotal += n;
+        });
+
+        document.getElementById('userPostsCount').textContent = userPosts.length;
+        document.getElementById('userLikesCount').textContent = likesTotal;
+
+        const userFollowing = userRecord ? parseFollowing(userRecord).length : 0;
+        document.getElementById('userFollowingCount').textContent = userFollowing;
+
+        const followBtn = document.getElementById('userFollowBtn');
+        const myFollowing = parseFollowing(currentUser).map(String);
+        const isFollowing = myFollowing.includes(String(user.id));
+        followBtn.textContent = isFollowing ? "Отписаться" : "Подписаться";
+        followBtn.style.background = isFollowing ? "#3a3b3c" : "#ff4d4d";
+
+        const container = document.getElementById('userPostsContainer');
+        container.innerHTML = "";
+
+        if (userPosts.length === 0) {
+            container.innerHTML = "<p style='text-align:center;color:#888;margin-top:20px;'>У этого пользователя нет публикаций.</p>";
+            return;
+        }
+
+        const localLikes = JSON.parse(localStorage.getItem('itp_liked') || "[]");
+        const frag = document.createDocumentFragment();
+
+        userPosts.forEach(p => {
+            const info = unpackPost(p);
+            let likesCount = Number(p.avatar);
+            if (!likesCount || isNaN(likesCount)) likesCount = 0;
+
+            const avatarSrc2 = user.customAvatar && user.customAvatar.startsWith("data:image")
+                ? user.customAvatar : getUserAvatarUrl(user.seed);
+            const badge = verifiedBadgeFromType(user.isVerified);
+            const isLiked = localLikes.includes(String(p.id));
+
+            const postEl = document.createElement('div');
+            postEl.className = 'post';
+            postEl.innerHTML = `
+                <div class="post-header">
+                    <img class="post-avatar" src="${escapeHtml(avatarSrc2)}" alt=""
+                         onerror="this.src='https://robohash.org/default?set=set4'">
+                    <div class="author-details">
+                        <span class="author-name">${escapeHtml(user.name)}${badge}</span>
+                    </div>
+                </div>
+                <div class="post-content">${escapeHtml(info.content) || "Пустое сообщение"}</div>
+                <div class="post-actions">
+                    <div class="action-btn ${isLiked ? 'liked' : ''}"
+                         id="like-btn-${escapeHtml(p.id)}"
+                         onclick="toggleLike('${escapeHtml(p.id)}', ${likesCount})">
+                        ❤️ <span id="like-count-${escapeHtml(p.id)}">${likesCount}</span>
+                    </div>
+                </div>`;
+            frag.appendChild(postEl);
+        });
+        container.appendChild(frag);
+    }
+
+    function toggleFollowViewedUser() {
+        if (!viewedUser) return;
+        toggleFollow(viewedUser.id);
+    }
+
+    function openChatWithViewedUser() {
+        if (!viewedUser) return;
+        activeChatPartner = { id: viewedUser.id, name: viewedUser.name };
+        switchScreen('chats');
+        renderDirectMessages();
+    }
+
+    /* ============================================================
        ЧАТЫ
        ============================================================ */
     function startChat(partnerName, partnerId) {
@@ -1102,8 +1570,7 @@
     function renderDirectMessages() {
         if (!currentUser) return;
         if (!activeChatPartner) {
-            document.getElementById('activeChatTitle').innerText =
-                "Выберите пользователя в Ленте для диалога";
+            document.getElementById('activeChatTitle').innerText = "Выберите пользователя в Ленте для диалога";
             document.getElementById('chatMessagesContainer').innerHTML = "";
             return;
         }
@@ -1196,12 +1663,24 @@
     function startPolling() {
         if (pollInterval) clearInterval(pollInterval);
         pollInterval = setInterval(() => {
-            if (!document.hidden && currentUser) loadData();
-        }, 5000);
+            if (document.hidden || !currentUser) return;
+            if (isEditingProfile) return;   // не дёргаем во время сохранения
+
+            loadData();
+
+            // Пока пользователь на экране профиля — не обновляем список юзеров,
+            // чтобы не перерисовывать и не отвлекать
+            const profileActive = document.getElementById('screen-profile').classList.contains('active');
+            if (!profileActive) loadUsers();
+        }, 8000);
     }
 
     document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && currentUser) loadData(true);
+        if (!document.hidden && currentUser && !isEditingProfile) {
+            loadData(true);
+            const profileActive = document.getElementById('screen-profile').classList.contains('active');
+            if (!profileActive) loadUsers();
+        }
     });
 
     window.addEventListener('beforeunload', () => {
@@ -1211,13 +1690,13 @@
     /* ============================================================
        ИНИЦИАЛИЗАЦИЯ
        ============================================================ */
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         const postText = document.getElementById('postText');
         if (postText) postText.addEventListener('input', updatePostCounter);
         updatePostCounter();
 
         if (restoreSession()) {
-            enterApp();
+            await enterApp();
         } else {
             switchScreen('auth');
         }
