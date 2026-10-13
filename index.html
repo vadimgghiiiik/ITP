@@ -2,25 +2,54 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>ИТП — Социальная сеть</title>
 </head>
 <body>
 
     <header>
         <div class="logo">ИТП</div>
-        <div class="user-badge" onclick="switchScreen('profile')">
+        <div class="user-badge" id="headerUserBadge" onclick="switchScreen('profile')" style="display:none;">
             <span id="headerUserName">Пользователь</span>
             <img id="headerUserAvatar" src="" alt="Avatar">
         </div>
     </header>
 
+    <!-- ЭКРАН АВТОРИЗАЦИИ -->
+    <div id="screen-auth" class="screen active">
+        <div class="auth-card">
+            <h2>Вход в ИТП</h2>
+            <input type="text" id="authLogin" placeholder="Логин" maxlength="30" autocomplete="username">
+            <input type="password" id="authPassword" placeholder="Пароль" maxlength="60" autocomplete="current-password"
+                   onkeypress="if(event.key==='Enter'){event.preventDefault();doLogin();}">
+            <button onclick="doLogin()" id="loginBtn">Войти</button>
+            <button class="btn-secondary" onclick="switchScreen('register')">Регистрация</button>
+            <p class="auth-error" id="authError"></p>
+        </div>
+    </div>
+
+    <!-- ЭКРАН РЕГИСТРАЦИИ -->
+    <div id="screen-register" class="screen">
+        <div class="auth-card">
+            <h2>Регистрация</h2>
+            <input type="text" id="regLogin" placeholder="Логин (латиница, 3-20)" maxlength="20" autocomplete="username">
+            <input type="text" id="regName" placeholder="Отображаемое имя" maxlength="30">
+            <input type="password" id="regPassword" placeholder="Пароль (мин. 4)" maxlength="60" autocomplete="new-password">
+            <input type="password" id="regPassword2" placeholder="Повтор пароля" maxlength="60" autocomplete="new-password"
+                   onkeypress="if(event.key==='Enter'){event.preventDefault();doRegister();}">
+            <button onclick="doRegister()" id="regBtn">Создать аккаунт</button>
+            <button class="btn-secondary" onclick="switchScreen('auth')">Назад</button>
+            <p class="auth-error" id="regError"></p>
+        </div>
+    </div>
+
     <!-- ВКЛАДКА 1: ЛЕНТА -->
-    <div id="screen-feed" class="screen active">
+    <div id="screen-feed" class="screen">
         <div class="feed-form">
-            <textarea id="postText" placeholder="Что у вас нового?"></textarea>
+            <textarea id="postText" placeholder="Что у вас нового?" maxlength="2000"></textarea>
             <div class="form-actions">
-                <button onclick="addPost()">Опубликовать</button>
+                <span id="postCounter" class="post-counter">0 / 2000</span>
+                <button id="postSubmitBtn" onclick="addPost()">Опубликовать</button>
             </div>
         </div>
         <div id="postsContainer">Загрузка ИТП...</div>
@@ -32,8 +61,9 @@
             <div id="activeChatTitle" class="chat-header-title">Выберите пользователя в Ленте для диалога</div>
             <div id="chatMessagesContainer" class="chat-messages"></div>
             <div class="chat-footer">
-                <input type="text" id="chatMessageInput" placeholder="Напишите сообщение..." onkeypress="if(event.key==='Enter') sendDirectMessage()">
-                <button onclick="sendDirectMessage()">📎</button>
+                <input type="text" id="chatMessageInput" placeholder="Напишите сообщение..." maxlength="1000"
+                       onkeypress="if(event.key==='Enter'){event.preventDefault();sendDirectMessage();}">
+                <button onclick="sendDirectMessage()" id="chatSendBtn">📎</button>
             </div>
         </div>
     </div>
@@ -46,18 +76,21 @@
                 <div class="avatar-overlay">📷 Сменить</div>
             </div>
             <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
-            
-            <input type="text" id="profileNameInput" class="profile-input" placeholder="Ваше имя">
-            
+
+            <input type="text" id="profileNameInput" class="profile-input" placeholder="Ваше имя" maxlength="30">
+
+            <p class="profile-login">Логин: <span id="profileLoginValue">—</span></p>
+
             <div class="profile-buttons">
-                <button onclick="saveProfile()">Сохранить профиль</button>
+                <button onclick="saveProfile()" id="saveProfileBtn">Сохранить профиль</button>
                 <button class="btn-secondary" onclick="resetAvatar()">Сбросить аватар</button>
+                <button class="btn-secondary logout-btn" onclick="logout()">Выйти</button>
             </div>
         </div>
     </div>
 
     <!-- Нижнее меню навигации -->
-    <nav>
+    <nav id="mainNav" style="display:none;">
         <div class="nav-item active" id="nav-feed" onclick="switchScreen('feed')">
             <span class="nav-icon">📰</span><span>Лента</span>
         </div>
@@ -68,188 +101,629 @@
             <span class="nav-icon">👤</span><span>Профиль</span>
         </div>
     </nav>
+
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #111213; color: #e4e6eb; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; padding-bottom: 70px; }
-    
-    /* Верхняя шапка */
-    header { background: #242526; padding: 15px; font-size: 22px; font-weight: bold; text-align: center; border-bottom: 1px solid #3a3b3c; color: #ff4d4d; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    body {
+        background: #111213;
+        color: #e4e6eb;
+        font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+        padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    header {
+        background: #242526;
+        padding: 15px;
+        font-size: 22px;
+        font-weight: bold;
+        text-align: center;
+        border-bottom: 1px solid #3a3b3c;
+        color: #ff4d4d;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
     .logo { font-weight: 900; letter-spacing: 1px; }
-    
-    /* Экраны разделов */
+
     .screen { display: none; padding: 15px; max-width: 600px; margin: 0 auto; }
     .screen.active { display: block; }
 
-    /* Профиль в шапке */
-    .user-badge { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #fff; cursor: pointer; }
-    .user-badge img { width: 32px; height: 32px; border-radius: 50%; background: #3a3b3c; border: 2px solid #ff4d4d; object-fit: cover; }
+    .user-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: #fff;
+        cursor: pointer;
+        max-width: 60%;
+    }
+    .user-badge span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .user-badge img {
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        background: #3a3b3c;
+        border: 2px solid #ff4d4d;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
 
-    /* Форма нового поста */
-    .feed-form { background: #242526; border: 1px solid #3a3b3c; border-radius: 12px; padding: 15px; margin-bottom: 20px; }
-    textarea { width: 100%; height: 70px; background: #18191a; color: #fff; border: 1px solid #3a3b3c; border-radius: 8px; padding: 10px; resize: none; outline: none; font-size: 15px; }
-    .form-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
-    button { background: #ff4d4d; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-    button:hover { background: #e03a3a; }
+    .auth-card {
+        background: #242526;
+        border: 1px solid #3a3b3c;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 360px;
+        margin: 40px auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .auth-card h2 { color: #ff4d4d; text-align: center; margin-bottom: 8px; }
+    .auth-card input {
+        padding: 12px;
+        background: #18191a;
+        border: 1px solid #3a3b3c;
+        color: #fff;
+        border-radius: 8px;
+        outline: none;
+        font-size: 15px;
+        font-family: inherit;
+    }
+    .auth-card input:focus { border-color: #ff4d4d; }
+    .auth-error {
+        color: #ff4d4d;
+        font-size: 13px;
+        text-align: center;
+        min-height: 16px;
+        word-wrap: break-word;
+    }
 
-    /* Стили постов в ленте */
-    .post { background: #242526; border: 1px solid #3a3b3c; padding: 15px; border-radius: 12px; margin-bottom: 15px; position: relative; }
-    .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-    .post-avatar { width: 40px; height: 40px; border-radius: 50%; background: #3a3b3c; object-fit: cover; }
-    .author-details { display: flex; flex-direction: column; }
-    .author-name { color: #fff; font-weight: bold; font-size: 15px; display: inline-flex; align-items: center; gap: 4px; }
-    .post-content { font-size: 15px; line-height: 1.4; white-space: pre-wrap; margin-bottom: 10px; }
+    .feed-form {
+        background: #242526;
+        border: 1px solid #3a3b3c;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    textarea {
+        width: 100%;
+        height: 70px;
+        background: #18191a;
+        color: #fff;
+        border: 1px solid #3a3b3c;
+        border-radius: 8px;
+        padding: 10px;
+        resize: none;
+        outline: none;
+        font-size: 15px;
+        font-family: inherit;
+    }
+    textarea:focus { border-color: #ff4d4d; }
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        gap: 10px;
+    }
+    .post-counter { font-size: 12px; color: #888; }
+    .post-counter.warn { color: #ffb700; }
+    .post-counter.danger { color: #ff4d4d; }
+    button {
+        background: #ff4d4d;
+        color: #fff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: 0.2s;
+        font-family: inherit;
+        font-size: 14px;
+    }
+    button:hover:not(:disabled) { background: #e03a3a; }
+    button:disabled { cursor: not-allowed; opacity: 0.5; }
 
-    /* ⭐ ГАЛОЧКИ — 6-конечная звезда 24×24 */
+    .post {
+        background: #242526;
+        border: 1px solid #3a3b3c;
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 15px;
+        position: relative;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+    .post-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .post-avatar {
+        width: 40px; height: 40px;
+        border-radius: 50%;
+        background: #3a3b3c;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+    .author-details { display: flex; flex-direction: column; min-width: 0; }
+    .author-name {
+        color: #fff;
+        font-weight: bold;
+        font-size: 15px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .post-content {
+        font-size: 15px;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        margin-bottom: 10px;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
     .verified-badge {
         display: inline-block;
-        width: 24px;
-        height: 24px;
+        width: 20px;
+        height: 20px;
         flex-shrink: 0;
-        vertical-align: -5px;
-        margin-left: 2px;
         background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
     }
-
-    /* 🔵 Синяя звезда — для "Dev - android app" */
     .verified-badge.verified-blue {
         background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='%231d9bf0' stroke='%231d9bf0' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='white'/></svg>");
     }
-
-    /* 🟡 Золотая звезда — для "Dev - WebCode" */
     .verified-badge.verified-gold {
         background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='%23ffb700' stroke='%23ffb700' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='white'/></svg>");
     }
 
-    /* 🟢 Зелёная звезда — для "ITPNews" */
-    .verified-badge.verified-green {
-        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='%2322c55e' stroke='%2322c55e' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='white'/></svg>");
+    .post-actions {
+        display: flex;
+        gap: 20px;
+        border-top: 1px solid #3a3b3c;
+        padding-top: 10px;
+        font-size: 14px;
+        flex-wrap: wrap;
     }
-    
-    /* Кнопки действий */
-    .post-actions { display: flex; gap: 20px; border-top: 1px solid #3a3b3c; padding-top: 10px; font-size: 14px; }
-    .action-btn { display: flex; align-items: center; gap: 5px; cursor: pointer; color: #b0b3b8; transition: 0.2s; user-select: none; }
+    .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+        color: #b0b3b8;
+        transition: 0.2s;
+        user-select: none;
+    }
     .action-btn:hover { color: #fff; }
     .action-btn.liked { color: #ff4d4d; }
     .action-btn.chat-link { color: #4bacff; }
+    .action-btn.delete-btn { color: #ff3333; margin-left: auto; }
+    .action-btn.delete-btn:hover { color: #ff6666; }
 
-    /* Эффект корзины при наведении */
-    .post-actions .action-btn[onclick*="deletePost"]:hover {
-        color: #ff4d4d !important;
-        text-shadow: 0 0 5px rgba(255, 77, 77, 0.3);
+    .profile-card {
+        background: #242526;
+        border: 1px solid #3a3b3c;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
     }
-
-    /* Настройки профиля */
-    .profile-card { background: #242526; border: 1px solid #3a3b3c; border-radius: 12px; padding: 20px; text-align: center; }
-    
-    /* Аватар с оверлеем */
-    .avatar-wrapper { position: relative; display: inline-block; cursor: pointer; margin-bottom: 15px; border-radius: 50%; overflow: hidden; }
-    .avatar-wrapper img { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #ff4d4d; object-fit: cover; display: block; transition: 0.3s; }
-    .avatar-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: #fff; font-size: 12px; padding: 5px 0; opacity: 0; transition: 0.3s; }
+    .avatar-wrapper {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+        margin-bottom: 15px;
+        border-radius: 50%;
+        overflow: hidden;
+    }
+    .avatar-wrapper img {
+        width: 100px; height: 100px;
+        border-radius: 50%;
+        border: 3px solid #ff4d4d;
+        object-fit: cover;
+        display: block;
+        transition: 0.3s;
+        background: #3a3b3c;
+    }
+    .avatar-overlay {
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        background: rgba(0,0,0,0.7);
+        color: #fff;
+        font-size: 12px;
+        padding: 5px 0;
+        opacity: 0;
+        transition: 0.3s;
+    }
     .avatar-wrapper:hover img { filter: brightness(0.6); }
     .avatar-wrapper:hover .avatar-overlay { opacity: 1; }
 
-    .profile-input { width: 100%; padding: 10px; background: #18191a; border: 1px solid #3a3b3c; color: #fff; border-radius: 8px; text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 15px; }
+    .profile-input {
+        width: 100%;
+        padding: 10px;
+        background: #18191a;
+        border: 1px solid #3a3b3c;
+        color: #fff;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        outline: none;
+        font-family: inherit;
+    }
+    .profile-input:focus { border-color: #ff4d4d; }
+    .profile-login {
+        font-size: 13px;
+        color: #888;
+        margin-bottom: 15px;
+    }
+    .profile-login span { color: #b0b3b8; font-weight: bold; }
     .profile-buttons { display: flex; flex-direction: column; gap: 10px; }
     .btn-secondary { background: #3a3b3c; }
-    .btn-secondary:hover { background: #4a4b4c; }
+    .btn-secondary:hover:not(:disabled) { background: #4a4b4c; }
+    .logout-btn { background: #5a1f1f; }
+    .logout-btn:hover:not(:disabled) { background: #7a2a2a; }
 
-    /* Личные диалоги */
-    .chat-layout { display: flex; flex-direction: column; height: calc(100vh - 150px); background: #242526; border: 1px solid #3a3b3c; border-radius: 12px; overflow: hidden; }
-    .chat-header-title { padding: 12px; background: #18191a; border-bottom: 1px solid #3a3b3c; font-weight: bold; text-align: center; color: #4bacff; }
-    .chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    .msg { max-width: 75%; padding: 10px 14px; border-radius: 16px; font-size: 15px; line-height: 1.4; }
+    .chat-layout {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 150px - env(safe-area-inset-bottom, 0px));
+        background: #242526;
+        border: 1px solid #3a3b3c;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .chat-header-title {
+        padding: 12px;
+        background: #18191a;
+        border-bottom: 1px solid #3a3b3c;
+        font-weight: bold;
+        text-align: center;
+        color: #4bacff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
+    .chat-messages {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .msg {
+        max-width: 75%;
+        padding: 10px 14px;
+        border-radius: 16px;
+        font-size: 15px;
+        line-height: 1.4;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        white-space: pre-wrap;
+    }
     .msg.incoming { background: #3a3b3c; align-self: flex-start; color: #fff; }
     .msg.outgoing { background: #0072ff; align-self: flex-end; color: #fff; }
-    .chat-footer { display: flex; padding: 10px; background: #18191a; border-top: 1px solid #3a3b3c; gap: 10px; }
-    .chat-footer input { flex: 1; background: #242526; border: 1px solid #3a3b3c; color: #fff; padding: 10px; border-radius: 8px; outline: none; }
+    .chat-footer {
+        display: flex;
+        padding: 10px;
+        background: #18191a;
+        border-top: 1px solid #3a3b3c;
+        gap: 10px;
+    }
+    .chat-footer input {
+        flex: 1;
+        background: #242526;
+        border: 1px solid #3a3b3c;
+        color: #fff;
+        padding: 10px;
+        border-radius: 8px;
+        outline: none;
+        font-family: inherit;
+        font-size: 14px;
+    }
+    .chat-footer input:focus { border-color: #4bacff; }
 
-    /* Нижняя навигация */
-    nav { position: fixed; bottom: 0; left: 0; right: 0; background: #242526; border-top: 1px solid #3a3b3c; display: flex; justify-content: space-around; padding: 10px 0; z-index: 100; }
-    .nav-item { color: #b0b3b8; text-decoration: none; font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; width: 33%; text-align: center; }
+    nav {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        background: #242526;
+        border-top: 1px solid #3a3b3c;
+        display: flex;
+        justify-content: space-around;
+        padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+        z-index: 100;
+    }
+    .nav-item {
+        color: #b0b3b8;
+        text-decoration: none;
+        font-size: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+        width: 33%;
+        text-align: center;
+        user-select: none;
+    }
     .nav-item.active { color: #ff4d4d; font-weight: bold; }
     .nav-icon { font-size: 20px; }
 </style>
+
 <script>
-    const BASE_URL = "https://6ac8473b75a4ce3fe7228a08.mockapi.io/api/v1/";
-    const RESOURCE = "posts"; 
-    const API_URL = BASE_URL + RESOURCE;
+    /* ============================================================
+       КОНФИГ
+       ============================================================ */
+    const BASE_URL  = "https://6ac8473b75a4ce3fe7228a08.mockapi.io/api/v1/";
+    const API_URL   = BASE_URL + "posts";
+    const USERS_URL = BASE_URL + "Users";   // ← с большой буквы (как в вашем mockapi)
 
-    let currentUser = { 
-        name: "Пользователь", 
-        avatarSeed: "user" + Math.floor(Math.random()*1000),
-        customAvatar: null
+    const MAX_POSTS     = 80;
+    const MAX_POST_LEN  = 2000;
+    const MAX_CHAT_LEN  = 1000;
+    const MAX_NAME_LEN  = 30;
+    const CHAT_SEP      = "|||";
+
+    // Галочки для «официальных» логинов
+    const VERIFIED_LOGINS = {
+        "android":  "blue",
+        "webcode":  "gold"
     };
-    let activeChatPartner = ""; 
-    let allServerPosts = [];
 
-    // ✅ Проверка типа аккаунта (без учёта регистра)
-    function getVerifyType(name) {
-        if (!name) return null;
-        const n = name.trim().toLowerCase();
-        if (n === "dev - android app") return "blue";
-        if (n === "dev - webcode") return "gold";
-        if (n === "itpnews") return "green";
-        if (n === "dev") return "blue"; // на всякий случай
-        return null;
+    /* ============================================================
+       СОСТОЯНИЕ
+       ============================================================ */
+    let currentUser    = null;
+    let currentUserId  = null;
+    let pendingAvatar  = null;
+
+    // Собеседник: { id, name }
+    let activeChatPartner = null;
+
+    let allServerPosts    = [];
+    let lastPostsHash     = '';
+    let pollInterval      = null;
+
+    /* ============================================================
+       УТИЛИТЫ
+       ============================================================ */
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
-    // ⭐ Галочка-звёздочка — синяя, золотая или зелёная
-    function getVerifiedBadge(name) {
-        const type = getVerifyType(name);
-        if (!type) return '';
-        let title = "";
-        if (type === "blue") title = "Dev - android app (верифицирован)";
-        else if (type === "gold") title = "Dev - WebCode (верифицирован)";
-        else if (type === "green") title = "ITPNews (официальный аккаунт)";
-        return `<span class="verified-badge verified-${type}" title="${title}"></span>`;
+    function verifiedBadgeFromType(type) {
+        if (type === "blue") return '<span class="verified-badge verified-blue" title="Верифицирован"></span>';
+        if (type === "gold") return '<span class="verified-badge verified-gold" title="Верифицирован"></span>';
+        return "";
     }
 
     function getUserAvatarUrl(seed, customAvatar) {
-        if (customAvatar && customAvatar.startsWith("data:image")) {
+        if (customAvatar && String(customAvatar).startsWith("data:image")) {
             return customAvatar;
         }
-        return `https://robohash.org/${seed}?set=set4`;
+        return `https://robohash.org/${encodeURIComponent(seed || 'default')}?set=set4`;
     }
 
-    function initProfile() {
-        const saved = localStorage.getItem('itp_user');
-        if (saved) {
-            currentUser = JSON.parse(saved);
-            if (!currentUser.customAvatar) currentUser.customAvatar = null;
-        } else {
-            currentUser.name = "Пользователь_" + Math.floor(Math.random() * 9000 + 1000);
-            localStorage.setItem('itp_user', JSON.stringify(currentUser));
+    // Быстрая защита от двойного тапа
+    function lockBtn(btn, text) {
+        if (!btn) return () => {};
+        const old = btn.innerText;
+        btn.disabled = true;
+        if (text) btn.innerText = text;
+        return () => { btn.disabled = false; btn.innerText = old; };
+    }
+
+    /* ============================================================
+       АВТОРИЗАЦИЯ
+       ============================================================ */
+    async function doLogin() {
+        const login    = document.getElementById('authLogin').value.trim().toLowerCase();
+        const password = document.getElementById('authPassword').value;
+        const errEl    = document.getElementById('authError');
+        const btn      = document.getElementById('loginBtn');
+        errEl.textContent = "";
+
+        if (!login || !password) { errEl.textContent = "Заполните все поля"; return; }
+
+        const unlock = lockBtn(btn, "Входим...");
+        try {
+            const res  = await fetch(`${USERS_URL}?login=${encodeURIComponent(login)}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const list = await res.json();
+
+            const user = Array.isArray(list) ? list.find(u => u.login === login) : null;
+            if (!user || user.password !== password) {
+                errEl.textContent = "Неверный логин или пароль";
+                return;
+            }
+
+            saveSession(user);
+            enterApp();
+        } catch (e) {
+            errEl.textContent = "Ошибка сети: " + e.message;
+            console.error(e);
+        } finally {
+            unlock();
         }
-        updateProfileUI();
     }
 
+    async function doRegister() {
+        const login  = document.getElementById('regLogin').value.trim().toLowerCase();
+        const name   = document.getElementById('regName').value.trim();
+        const pass1  = document.getElementById('regPassword').value;
+        const pass2  = document.getElementById('regPassword2').value;
+        const errEl  = document.getElementById('regError');
+        const btn    = document.getElementById('regBtn');
+        errEl.textContent = "";
+
+        if (!/^[a-z0-9_]{3,20}$/.test(login)) {
+            errEl.textContent = "Логин: 3-20 символов, латиница/цифры/_"; return;
+        }
+        if (name.length < 2 || name.length > MAX_NAME_LEN) {
+            errEl.textContent = "Имя: от 2 до 30 символов"; return;
+        }
+        if (pass1.length < 4) { errEl.textContent = "Пароль минимум 4 символа"; return; }
+        if (pass1 !== pass2)  { errEl.textContent = "Пароли не совпадают";       return; }
+
+        const unlock = lockBtn(btn, "Создаём...");
+        try {
+            // Проверка занятости логина
+            const check = await fetch(`${USERS_URL}?login=${encodeURIComponent(login)}`);
+            if (check.ok) {
+                const found = await check.json();
+                if (Array.isArray(found) && found.length > 0) {
+                    errEl.textContent = "Такой логин уже занят"; return;
+                }
+            }
+
+            const verified = VERIFIED_LOGINS[login] || "";
+
+            const newUser = {
+                login: login,
+                password: pass1,
+                name: name,
+                avatarSeed: login,
+                customAvatar: "",
+                isVerified: verified
+            };
+
+            const res = await fetch(USERS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newUser)
+            });
+
+            if (!res.ok) {
+                const txt = await res.text();
+                console.error("Register server response:", txt);
+                throw new Error(`HTTP ${res.status}`);
+            }
+            const created = await res.json();
+
+            saveSession(created);
+            enterApp();
+        } catch (e) {
+            errEl.textContent = "Ошибка: " + e.message;
+            console.error("Register error:", e);
+        } finally {
+            unlock();
+        }
+    }
+
+    function saveSession(user) {
+        currentUser = {
+            id: user.id,
+            login: user.login,
+            name: user.name,
+            avatarSeed: user.avatarSeed || user.login,
+            customAvatar: (user.customAvatar && String(user.customAvatar).startsWith("data:image"))
+                ? user.customAvatar
+                : null,
+            isVerified: user.isVerified || ""
+        };
+        currentUserId = user.id;
+        localStorage.setItem('itp_session', JSON.stringify(currentUser));
+    }
+
+    function restoreSession() {
+        const raw = localStorage.getItem('itp_session');
+        if (!raw) return false;
+        try {
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.id && parsed.name) {
+                currentUser   = parsed;
+                currentUserId = parsed.id;
+                return true;
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    function logout() {
+        if (!confirm("Выйти из аккаунта?")) return;
+        localStorage.removeItem('itp_session');
+        currentUser   = null;
+        currentUserId = null;
+        pendingAvatar = null;
+        activeChatPartner = null;
+        allServerPosts = [];
+        lastPostsHash = '';
+        if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+
+        document.getElementById('authLogin').value = "";
+        document.getElementById('authPassword').value = "";
+        document.getElementById('authError').textContent = "";
+        document.getElementById('regError').textContent = "";
+
+        document.getElementById('headerUserBadge').style.display = 'none';
+        document.getElementById('mainNav').style.display = 'none';
+        document.getElementById('postText').value = "";
+        updatePostCounter();
+        document.getElementById('postsContainer').innerHTML = "Загрузка ИТП...";
+
+        switchScreen('auth');
+    }
+
+    function enterApp() {
+        updateProfileUI();
+        document.getElementById('headerUserBadge').style.display = 'flex';
+        document.getElementById('mainNav').style.display = 'flex';
+        switchScreen('feed');
+        loadData(true);
+        startPolling();
+    }
+
+    /* ============================================================
+       ПРОФИЛЬ
+       ============================================================ */
     function updateProfileUI() {
+        if (!currentUser) return;
         const avatarUrl = getUserAvatarUrl(currentUser.avatarSeed, currentUser.customAvatar);
         const headerNameEl = document.getElementById('headerUserName');
-        
-        headerNameEl.innerHTML = `${currentUser.name}${getVerifiedBadge(currentUser.name)}`;
-        headerNameEl.style.display = "inline-flex";
-        headerNameEl.style.alignItems = "center";
-        headerNameEl.style.gap = "4px";
-        
+        headerNameEl.innerHTML = `${escapeHtml(currentUser.name)}${verifiedBadgeFromType(currentUser.isVerified)}`;
+        headerNameEl.style.cssText = "display:inline-flex;align-items:center;gap:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+
         document.getElementById('headerUserAvatar').src = avatarUrl;
         document.getElementById('profileAvatarImg').src = avatarUrl;
         document.getElementById('profileNameInput').value = currentUser.name;
+        document.getElementById('profileLoginValue').textContent = currentUser.login || "—";
     }
 
     function handleAvatarUpload(event) {
-        const file = event.target.files[0];
+        const file = event.target.files && event.target.files[0];
         if (!file) return;
 
         if (!file.type.startsWith('image/')) {
             alert("Пожалуйста, выберите изображение!");
+            event.target.value = "";
             return;
         }
-
-        if (file.size > 2 * 1024 * 1024) {
-            alert("Картинка слишком большая! Максимум 2 МБ.");
+        if (file.size > 5 * 1024 * 1024) {
+            alert("Картинка слишком большая! Максимум 5 МБ.");
+            event.target.value = "";
             return;
         }
 
@@ -257,96 +731,166 @@
         reader.onload = function(e) {
             const img = new Image();
             img.onload = function() {
-                const canvas = document.createElement('canvas');
-                const size = 200;
-                canvas.width = size;
-                canvas.height = size;
-                const ctx = canvas.getContext('2d');
+                try {
+                    const canvas = document.createElement('canvas');
+                    const size = 200;
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
 
-                const minSide = Math.min(img.width, img.height);
-                const sx = (img.width - minSide) / 2;
-                const sy = (img.height - minSide) / 2;
-                ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+                    const minSide = Math.min(img.width, img.height);
+                    const sx = (img.width - minSide) / 2;
+                    const sy = (img.height - minSide) / 2;
+                    ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
 
-                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                currentUser.customAvatar = compressedDataUrl;
-                localStorage.setItem('itp_user', JSON.stringify(currentUser));
-                updateProfileUI();
-                alert("Аватар обновлён! Нажмите «Сохранить профиль», чтобы применить его в постах.");
+                    pendingAvatar = canvas.toDataURL('image/jpeg', 0.85);
+
+                    document.getElementById('profileAvatarImg').src = pendingAvatar;
+                    document.getElementById('headerUserAvatar').src = pendingAvatar;
+
+                    alert("Аватар подготовлен. Нажмите «Сохранить профиль».");
+                } catch (err) {
+                    alert("Не удалось обработать изображение.");
+                }
             };
+            img.onerror = () => alert("Не удалось открыть файл как изображение.");
             img.src = e.target.result;
         };
+        reader.onerror = () => alert("Ошибка чтения файла.");
         reader.readAsDataURL(file);
-        
+
         event.target.value = "";
     }
 
     function resetAvatar() {
         if (!confirm("Сбросить аватар на стандартный?")) return;
-        currentUser.customAvatar = null;
-        localStorage.setItem('itp_user', JSON.stringify(currentUser));
-        updateProfileUI();
-        alert("Аватар сброшен.");
+        pendingAvatar = "";
+        document.getElementById('profileAvatarImg').src =
+            getUserAvatarUrl(currentUser.avatarSeed, null);
+        document.getElementById('headerUserAvatar').src =
+            getUserAvatarUrl(currentUser.avatarSeed, null);
     }
 
-    function saveProfile() {
+    async function saveProfile() {
+        if (!currentUser) return;
         const newName = document.getElementById('profileNameInput').value.trim();
-        if(newName === "") return alert("Имя не может быть пустым!");
-        currentUser.name = newName;
-        if (!currentUser.customAvatar) {
-            currentUser.avatarSeed = encodeURIComponent(newName);
+        if (newName.length < 2 || newName.length > MAX_NAME_LEN) {
+            return alert("Имя от 2 до 30 символов");
         }
-        localStorage.setItem('itp_user', JSON.stringify(currentUser));
-        updateProfileUI();
-        
-        const type = getVerifyType(newName);
-        if (type === "blue") {
-            alert("⭐ Профиль сохранён! Вы получили синюю звёздочку (Dev - android app).");
-        } else if (type === "gold") {
-            alert("🌟 Профиль сохранён! Вы получили золотую звёздочку (Dev - WebCode).");
-        } else if (type === "green") {
-            alert("✅ Профиль сохранён! Вы получили зелёную звёздочку (ITPNews).");
-        } else {
-            alert("Профиль успешно сохранён!");
+
+        const avatarToSave = (pendingAvatar !== null) ? pendingAvatar : (currentUser.customAvatar || "");
+        const btn = document.getElementById('saveProfileBtn');
+        const unlock = lockBtn(btn, "Сохраняем...");
+
+        try {
+            const res = await fetch(`${USERS_URL}/${currentUserId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: newName,
+                    customAvatar: avatarToSave,
+                    avatarSeed: currentUser.avatarSeed || currentUser.login
+                })
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+            currentUser.name = newName;
+            currentUser.customAvatar = avatarToSave && avatarToSave.startsWith("data:image")
+                ? avatarToSave
+                : null;
+            pendingAvatar = null;
+
+            localStorage.setItem('itp_session', JSON.stringify(currentUser));
+            updateProfileUI();
+
+            alert("Профиль сохранён!");
+            switchScreen('feed');
+            loadData(true);
+        } catch (e) {
+            alert("Не удалось сохранить профиль: " + e.message);
+            console.error(e);
+        } finally {
+            unlock();
         }
-        
-        switchScreen('feed');
-        loadData();
     }
 
+    /* ============================================================
+       НАВИГАЦИЯ
+       ============================================================ */
     function switchScreen(screenName) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        
-        document.getElementById(`screen-${screenName}`).classList.add('active');
-        document.getElementById(`nav-${screenName}`).classList.add('active');
 
-        if(screenName === 'chats' && activeChatPartner) {
+        const screenEl = document.getElementById(`screen-${screenName}`);
+        const navEl    = document.getElementById(`nav-${screenName}`);
+        if (screenEl) screenEl.classList.add('active');
+        if (navEl)    navEl.classList.add('active');
+
+        if (screenName === 'chats' && activeChatPartner) {
             renderDirectMessages();
         }
     }
 
-    async function loadData() {
+    /* ============================================================
+       ЗАГРУЗКА ДАННЫХ
+       ============================================================ */
+    async function loadData(force = false) {
+        if (!currentUser) return;
         try {
             const response = await fetch(API_URL);
-            if (!response.ok) throw new Error();
-            allServerPosts = await response.json();
-            
-            renderFeed();
-            if(activeChatPartner) {
-                renderDirectMessages();
+            if (!response.ok) throw new Error('Network error');
+            const data = await response.json();
+            if (!Array.isArray(data)) throw new Error('Bad data');
+
+            const hash = data.map(p => `${p.id}:${p.avatar}`).sort().join('|');
+            const changed = hash !== lastPostsHash || force;
+
+            allServerPosts = data;
+            lastPostsHash = hash;
+
+            if (changed) {
+                renderFeed();
+                if (activeChatPartner) renderDirectMessages();
             }
         } catch (e) {
-            document.getElementById('postsContainer').innerHTML = "<p style='text-align:center;color:#ff3333;'>Ошибка синхронизации с базой ИТП.</p>";
+            if (force) {
+                document.getElementById('postsContainer').innerHTML =
+                    "<p style='text-align:center;color:#ff3333;'>Ошибка синхронизации с базой ИТП.</p>";
+            }
+            console.error("loadData error:", e);
         }
     }
 
+    /* ============================================================
+       РАЗБОР ПОСТА
+       name ||| content ||| avatarSeed ||| customAvatar ||| isVerified ||| authorId
+       ============================================================ */
+    function unpackPost(p) {
+        const parts = (p.name || "").split(CHAT_SEP);
+        return {
+            author:       parts[0] || "Аноним",
+            content:      parts[1] || "",
+            seed:         parts[2] || "default",
+            customAvatar: parts[3] || "",
+            isVerified:   parts[4] || "",
+            authorId:     parts[5] || ""
+        };
+    }
+
+    /* ============================================================
+       ЛЕНТА
+       ============================================================ */
     function renderFeed() {
         const container = document.getElementById('postsContainer');
         container.innerHTML = "";
 
-        const publicPosts = allServerPosts.filter(p => !p.name.includes("|||[CHAT:"));
-        
+        const publicPosts = allServerPosts.filter(p => {
+            if (!p || !p.name) return false;
+            const parts = p.name.split(CHAT_SEP);
+            const body = parts[1] || "";
+            return !body.startsWith("[CHAT:");
+        });
+
         if (publicPosts.length === 0) {
             container.innerHTML = "<p style='text-align:center;color:#888;margin-top:20px;'>В ИТП пока нет публикаций.</p>";
             return;
@@ -354,202 +898,287 @@
 
         publicPosts.sort((a, b) => Number(b.id) - Number(a.id));
 
-        let html = "";
+        const localLikes = JSON.parse(localStorage.getItem('itp_liked') || "[]");
+        const frag = document.createDocumentFragment();
+
         publicPosts.forEach(p => {
-            let author = "Аноним";
-            let content = p.name;
-            let seed = "default";
-            let postCustomAvatar = null;
-            
-            let likesCount = p.avatar;
-            if (!likesCount || isNaN(likesCount) || String(likesCount).includes("http")) {
+            const info = unpackPost(p);
+
+            let likesCount = Number(p.avatar);
+            if (!likesCount || isNaN(likesCount) || String(p.avatar).includes("http")) {
                 likesCount = 0;
             }
 
-            if (p.name && p.name.includes("|||")) {
-                const parts = p.name.split("|||");
-                author = parts[0];
-                content = parts[1];
-                seed = parts[2] || "default";
-                postCustomAvatar = parts[3] || null;
+            // Аватар автора: если это я — берём мой актуальный
+            let avatarSrc;
+            if (info.authorId && String(info.authorId) === String(currentUserId)) {
+                avatarSrc = getUserAvatarUrl(currentUser.avatarSeed, currentUser.customAvatar);
+            } else {
+                avatarSrc = info.customAvatar && info.customAvatar.startsWith("data:image")
+                    ? info.customAvatar
+                    : getUserAvatarUrl(info.seed);
             }
 
-            if (author === currentUser.name) {
-                postCustomAvatar = currentUser.customAvatar;
-                if (!postCustomAvatar) seed = currentUser.avatarSeed;
-            }
+            const badge   = verifiedBadgeFromType(info.isVerified);
+            const isMine  = info.authorId && String(info.authorId) === String(currentUserId);
+            const isLiked = localLikes.includes(String(p.id));
 
-            const localLikes = JSON.parse(localStorage.getItem('itp_liked') || "[]");
-            const isLiked = localLikes.includes(p.id);
+            const postEl = document.createElement('div');
+            postEl.className = 'post';
 
-            let deleteBtnHtml = "";
-            if (author === currentUser.name) {
-                deleteBtnHtml = `<div class="action-btn" style="color: #ff3333; margin-left: auto;" onclick="deletePost('${p.id}')">🗑️ Удалить</div>`;
-            }
-
-            const avatarSrc = postCustomAvatar 
-                ? postCustomAvatar 
-                : `https://robohash.org/${seed}?set=set4`;
-
-            const badge = getVerifiedBadge(author);
-
-            html += `
-                <div class="post">
-                    <div class="post-header">
-                        <img class="post-avatar" src="${avatarSrc}" alt="">
-                        <div class="author-details">
-                            <span class="author-name">${author}${badge}</span>
-                        </div>
-                    </div>
-                    <div class="post-content">${content || "Пустое сообщение"}</div>
-                    <div class="post-actions">
-                        <div class="action-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${p.id}', ${likesCount})">
-                            ❤️ <span id="like-count-${p.id}">${likesCount}</span>
-                        </div>
-                        ${author !== currentUser.name ? `
-                        <div class="action-btn chat-link" onclick="startChat('${author}')">
-                            💬 Личное сообщение
-                        </div>` : ''}
-                        ${deleteBtnHtml}
+            const headerHtml = `
+                <div class="post-header">
+                    <img class="post-avatar" src="${escapeHtml(avatarSrc)}" alt=""
+                         onerror="this.src='https://robohash.org/default?set=set4'">
+                    <div class="author-details">
+                        <span class="author-name">${escapeHtml(info.author)}${badge}</span>
                     </div>
                 </div>`;
+
+            const contentHtml = `<div class="post-content">${escapeHtml(info.content) || "Пустое сообщение"}</div>`;
+
+            const actionsHtml = `
+                <div class="post-actions">
+                    <div class="action-btn ${isLiked ? 'liked' : ''}"
+                         id="like-btn-${escapeHtml(p.id)}"
+                         onclick="toggleLike('${escapeHtml(p.id)}', ${likesCount})">
+                        ❤️ <span id="like-count-${escapeHtml(p.id)}">${likesCount}</span>
+                    </div>
+                    ${!isMine ? `
+                    <div class="action-btn chat-link"
+                         onclick="startChat(${JSON.stringify(info.author).replace(/"/g, '&quot;')}, ${JSON.stringify(info.authorId).replace(/"/g, '&quot;')})">
+                        💬 Личное сообщение
+                    </div>` : ''}
+                    ${isMine ? `
+                    <div class="action-btn delete-btn" onclick="deletePost('${escapeHtml(p.id)}')">
+                        🗑️ Удалить
+                    </div>` : ''}
+                </div>`;
+
+            postEl.innerHTML = headerHtml + contentHtml + actionsHtml;
+            frag.appendChild(postEl);
         });
-        container.innerHTML = html;
+        container.appendChild(frag);
     }
 
     async function addPost() {
-        const btn = document.querySelector('.feed-form button');
-        const txt = document.getElementById('postText').value.trim();
+        if (!currentUser) return;
+        const btn = document.getElementById('postSubmitBtn');
+        const txtEl = document.getElementById('postText');
+        const txt = txtEl.value.trim();
         if (txt === "") return;
+        if (txt.length > MAX_POST_LEN) return alert("Пост слишком длинный");
 
-        btn.disabled = true;
-        btn.style.opacity = "0.5";
-        btn.innerText = "Отправка...";
-
-        if (allServerPosts.length >= 80) {
-            const oldestPost = allServerPosts.reduce((prev, curr) => Number(prev.id) < Number(curr.id) ? prev : curr);
-            try {
-                await fetch(`${API_URL}/${oldestPost.id}`, { method: 'DELETE' });
-            } catch(e) { console.error("Не удалось освободить место", e); }
-        }
-
-        const customAvatar = currentUser.customAvatar || "";
-        const packedData = `${currentUser.name}|||${txt}|||${currentUser.avatarSeed}|||${customAvatar}`;
+        const unlock = lockBtn(btn, "Отправка...");
 
         try {
+            // Ротация: удаляем только свои старые, если общий лимит превышен
+            if (allServerPosts.length >= MAX_POSTS) {
+                const myOldPosts = allServerPosts
+                    .filter(p => {
+                        const parts = (p.name || "").split(CHAT_SEP);
+                        return parts[5] && String(parts[5]) === String(currentUserId);
+                    })
+                    .sort((a, b) => Number(a.id) - Number(b.id))
+                    .slice(0, 5);
+                await Promise.allSettled(
+                    myOldPosts.map(p => fetch(`${API_URL}/${p.id}`, { method: 'DELETE' }))
+                );
+            }
+
+            const packedData = [
+                currentUser.name,
+                txt,
+                currentUser.avatarSeed || currentUser.login,
+                currentUser.customAvatar || "",
+                currentUser.isVerified || "",
+                currentUserId
+            ].join(CHAT_SEP);
+
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: packedData, avatar: 0 })
             });
-            if (!response.ok) throw new Error();
-            document.getElementById('postText').value = "";
-            await loadData();
+            if (!response.ok) throw new Error('POST failed');
+
+            txtEl.value = "";
+            updatePostCounter();
+            await loadData(true);
         } catch (e) {
             alert("Не удалось отправить публикацию.");
+            console.error(e);
         } finally {
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.style.opacity = "1";
-                btn.innerText = "Опубликовать";
-            }, 4000);
+            unlock();
         }
     }
 
     async function deletePost(postId) {
+        if (!currentUser) return;
+        const post = allServerPosts.find(p => String(p.id) === String(postId));
+        if (!post) return;
+        const info = unpackPost(post);
+
+        if (String(info.authorId) !== String(currentUserId)) {
+            return alert("Вы можете удалять только свои посты.");
+        }
+
         if (!confirm("Вы уверены, что хотите удалить этот пост?")) return;
         try {
             const response = await fetch(`${API_URL}/${postId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error();
-            allServerPosts = allServerPosts.filter(p => p.id !== postId);
+            allServerPosts = allServerPosts.filter(p => String(p.id) !== String(postId));
             renderFeed();
         } catch (e) {
             alert("Не удалось удалить пост.");
         }
     }
 
+    // Защита от накрутки лайков двойным тапом
+    const likeLocks = new Set();
+
     async function toggleLike(postId, currentLikes) {
+        const postIdStr = String(postId);
+        if (likeLocks.has(postIdStr)) return;
+        likeLocks.add(postIdStr);
+
         let localLikes = JSON.parse(localStorage.getItem('itp_liked') || "[]");
-        const hasLiked = localLikes.includes(postId);
-        let newLikesCount = currentLikes;
+        const hasLiked = localLikes.includes(postIdStr);
+        const newLikesCount = hasLiked
+            ? Math.max(0, currentLikes - 1)
+            : currentLikes + 1;
 
-        if (hasLiked) {
-            localLikes = localLikes.filter(id => id !== postId);
-            newLikesCount = Math.max(0, newLikesCount - 1);
-        } else {
-            localLikes.push(postId);
-            newLikesCount += 1;
-        }
-
+        // Оптимистичное обновление UI
+        if (hasLiked) localLikes = localLikes.filter(id => id !== postIdStr);
+        else localLikes.push(postIdStr);
         localStorage.setItem('itp_liked', JSON.stringify(localLikes));
-        
+
         const el = document.getElementById(`like-count-${postId}`);
-        if(el) el.innerText = newLikesCount;
-        el.parentElement.classList.toggle('liked', !hasLiked);
+        const parent = document.getElementById(`like-btn-${postId}`);
+        if (el) el.innerText = newLikesCount;
+        if (parent) parent.classList.toggle('liked', !hasLiked);
 
         try {
-            await fetch(`${API_URL}/${postId}`, {
+            const res = await fetch(`${API_URL}/${postId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ avatar: newLikesCount })
             });
-            const pIndex = allServerPosts.findIndex(p => p.id === postId);
-            if(pIndex !== -1) allServerPosts[pIndex].avatar = newLikesCount;
-        } catch(e) {
-            console.error("Сбой синхронизации лайков", e);
+            if (!res.ok) throw new Error('PUT failed');
+            const pIndex = allServerPosts.findIndex(p => String(p.id) === postIdStr);
+            if (pIndex !== -1) allServerPosts[pIndex].avatar = newLikesCount;
+        } catch (e) {
+            // Откат
+            if (hasLiked) localLikes.push(postIdStr);
+            else localLikes = localLikes.filter(id => id !== postIdStr);
+            localStorage.setItem('itp_liked', JSON.stringify(localLikes));
+
+            if (el) el.innerText = currentLikes;
+            if (parent) parent.classList.toggle('liked', hasLiked);
+            console.error("Не удалось сохранить лайк", e);
+        } finally {
+            likeLocks.delete(postIdStr);
         }
     }
 
-    function startChat(partnerName) {
-        activeChatPartner = partnerName;
+    function updatePostCounter() {
+        const txt = document.getElementById('postText').value;
+        const counter = document.getElementById('postCounter');
+        counter.innerText = `${txt.length} / ${MAX_POST_LEN}`;
+        counter.classList.remove('warn', 'danger');
+        if (txt.length > MAX_POST_LEN * 0.9) counter.classList.add('danger');
+        else if (txt.length > MAX_POST_LEN * 0.7) counter.classList.add('warn');
+    }
+
+    /* ============================================================
+       ЧАТЫ
+       Собеседники идентифицируются по id (в теге [CHAT:myId->partnerId]).
+       Имена отображаются отдельно.
+       ============================================================ */
+    function startChat(partnerName, partnerId) {
+        if (!partnerName || !currentUser) return;
+        if (!partnerId || String(partnerId) === String(currentUserId)) return;
+
+        activeChatPartner = { id: String(partnerId), name: partnerName };
         switchScreen('chats');
+        renderDirectMessages();
     }
 
     function renderDirectMessages() {
+        if (!currentUser) return;
+        if (!activeChatPartner) {
+            document.getElementById('activeChatTitle').innerText =
+                "Выберите пользователя в Ленте для диалога";
+            document.getElementById('chatMessagesContainer').innerHTML = "";
+            return;
+        }
+
         const titleEl = document.getElementById('activeChatTitle');
-        titleEl.innerHTML = `Диалог с: ${activeChatPartner}${getVerifiedBadge(activeChatPartner)}`;
-        titleEl.style.display = "flex";
-        titleEl.style.alignItems = "center";
-        titleEl.style.justifyContent = "center";
-        titleEl.style.gap = "5px";
+        titleEl.innerHTML = `Диалог с: ${escapeHtml(activeChatPartner.name)}`;
 
         const container = document.getElementById('chatMessagesContainer');
+        const prevScroll = container.scrollTop;
+        const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
         container.innerHTML = "";
 
-        const chatTag1 = `[CHAT:${currentUser.name}->${activeChatPartner}]`;
-        const chatTag2 = `[CHAT:${activeChatPartner}->${currentUser.name}]`;
+        const myId       = String(currentUserId);
+        const partnerId  = String(activeChatPartner.id);
+        const tagOut     = `[CHAT:${myId}->${partnerId}]`;
+        const tagIn      = `[CHAT:${partnerId}->${myId}]`;
 
-        const messages = allServerPosts.filter(p => p.name.includes("|||" + chatTag1) || p.name.includes("|||" + chatTag2));
-        
+        const messages = allServerPosts.filter(p => {
+            if (!p || !p.name) return false;
+            const parts = p.name.split(CHAT_SEP);
+            if (parts.length < 2) return false;
+            const body = parts[1];
+            return body.startsWith(tagOut) || body.startsWith(tagIn);
+        });
+
         messages.sort((a, b) => Number(a.id) - Number(b.id));
 
-        if(messages.length === 0) {
+        if (messages.length === 0) {
             container.innerHTML = "<p style='text-align:center;color:#888;margin-top:40px;'>Нет сообщений. Напишите первым!</p>";
             return;
         }
 
+        const frag = document.createDocumentFragment();
         messages.forEach(m => {
-            const parts = m.name.split("|||");
-            const messageContent = parts[1].replace(/\[CHAT:.*?\]/g, "").trim();
-            const isOutgoing = m.name.includes(chatTag1);
+            const parts = m.name.split(CHAT_SEP);
+            const body = parts[1] || "";
+            const messageContent = body.replace(/^\[CHAT:\d+->\d+\]\s?/, "");
+            const isOutgoing = body.startsWith(tagOut);
 
             const div = document.createElement('div');
             div.className = `msg ${isOutgoing ? 'outgoing' : 'incoming'}`;
             div.innerText = messageContent;
-            container.appendChild(div);
+            frag.appendChild(div);
         });
+        container.appendChild(frag);
 
-        container.scrollTop = container.scrollHeight;
+        if (wasAtBottom) container.scrollTop = container.scrollHeight;
+        else container.scrollTop = prevScroll;
     }
 
     async function sendDirectMessage() {
+        if (!currentUser || !activeChatPartner) return;
         const input = document.getElementById('chatMessageInput');
+        const btn   = document.getElementById('chatSendBtn');
         const txt = input.value.trim();
-        if(txt === "" || !activeChatPartner) return;
+        if (txt === "") return;
+        if (txt.length > MAX_CHAT_LEN) return alert("Сообщение слишком длинное");
 
-        const chatTag = `[CHAT:${currentUser.name}->${activeChatPartner}]`;
-        const packedData = `${currentUser.name}|||${chatTag} ${txt}|||${currentUser.avatarSeed}`;
+        const tag = `[CHAT:${currentUserId}->${activeChatPartner.id}]`;
+        const packedData = [
+            currentUser.name,
+            `${tag} ${txt}`,
+            currentUser.avatarSeed || currentUser.login,
+            currentUser.customAvatar || "",
+            currentUser.isVerified || "",
+            currentUserId
+        ].join(CHAT_SEP);
 
+        const unlock = lockBtn(btn, "...");
+        input.value = "";
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
@@ -557,17 +1186,47 @@
                 body: JSON.stringify({ name: packedData, avatar: 0 })
             });
             if (!response.ok) throw new Error();
-            input.value = "";
-            await loadData();
-        } catch(e) {
+            await loadData(true);
+        } catch (e) {
             alert("Не удалось отправить сообщение");
+            input.value = txt;
+        } finally {
+            unlock();
         }
     }
 
-    setInterval(loadData, 5000);
+    /* ============================================================
+       ПОЛЛИНГ
+       ============================================================ */
+    function startPolling() {
+        if (pollInterval) clearInterval(pollInterval);
+        pollInterval = setInterval(() => {
+            if (!document.hidden && currentUser) loadData();
+        }, 5000);
+    }
 
-    initProfile();
-    loadData();
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && currentUser) loadData(true);
+    });
+
+    window.addEventListener('beforeunload', () => {
+        if (pollInterval) clearInterval(pollInterval);
+    });
+
+    /* ============================================================
+       ИНИЦИАЛИЗАЦИЯ
+       ============================================================ */
+    document.addEventListener('DOMContentLoaded', () => {
+        const postText = document.getElementById('postText');
+        if (postText) postText.addEventListener('input', updatePostCounter);
+        updatePostCounter();
+
+        if (restoreSession()) {
+            enterApp();
+        } else {
+            switchScreen('auth');
+        }
+    });
 </script>
 </body>
 </html>
