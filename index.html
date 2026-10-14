@@ -70,13 +70,29 @@
 
     <!-- ВКЛАДКА 3: ЧАТЫ -->
     <div id="screen-chats" class="screen">
-        <div class="chat-layout">
-            <div id="activeChatTitle" class="chat-header-title">Выберите пользователя в Ленте для диалога</div>
-            <div id="chatMessagesContainer" class="chat-messages"></div>
-            <div class="chat-footer">
-                <input type="text" id="chatMessageInput" placeholder="Напишите сообщение..." maxlength="1000"
-                       onkeypress="if(event.key==='Enter'){event.preventDefault();sendDirectMessage();}">
-                <button onclick="sendDirectMessage()" id="chatSendBtn">📎</button>
+        <div id="chatsListView">
+            <div class="chats-list-header">
+                <h2>Чаты</h2>
+            </div>
+            <div id="chatsList">Загрузка чатов...</div>
+        </div>
+
+        <div id="chatRoomView" style="display:none;">
+            <div class="chat-room-topbar">
+                <button class="chat-back-btn" onclick="closeChatRoom()">←</button>
+                <img id="chatRoomAvatar" class="chat-room-avatar" src="" alt="" onclick="openChatPartnerProfile()" style="cursor:pointer;">
+                <div class="chat-room-name-block" onclick="openChatPartnerProfile()" style="cursor:pointer;">
+                    <div id="chatRoomName" class="chat-room-name">—</div>
+                    <div id="chatRoomLogin" class="chat-room-login"></div>
+                </div>
+            </div>
+            <div class="chat-layout">
+                <div id="chatMessagesContainer" class="chat-messages"></div>
+                <div class="chat-footer">
+                    <input type="text" id="chatMessageInput" placeholder="Напишите сообщение..." maxlength="1000"
+                           onkeypress="if(event.key==='Enter'){event.preventDefault();sendDirectMessage();}">
+                    <button onclick="sendDirectMessage()" id="chatSendBtn">📎</button>
+                </div>
             </div>
         </div>
     </div>
@@ -246,7 +262,7 @@
         user-select: text;
     }
 
-    button, .nav-item, .action-btn, .post-header, .person-card, .user-badge, .theme-toggle, .avatar-wrapper {
+    button, .nav-item, .action-btn, .post-header, .person-card, .user-badge, .theme-toggle, .avatar-wrapper, .chat-list-item, .chat-room-avatar, .chat-room-name-block {
         touch-action: manipulation;
         -webkit-user-select: none;
         user-select: none;
@@ -500,7 +516,6 @@
     .action-btn.delete-btn { color: var(--accent); margin-left: auto; }
     .action-btn.delete-btn:hover { background: var(--accent-soft); }
 
-    /* ==================== ГАЛОЧКИ ==================== */
     .verified-badge {
         display: inline-block; width: 18px; height: 18px;
         flex-shrink: 0;
@@ -516,7 +531,6 @@
         background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='white' stroke='%23cccccc' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='%23111'/></svg>");
     }
 
-    /* ==================== ПРОФИЛЬ ==================== */
     .profile-card {
         background: var(--bg-card);
         border: 1px solid var(--border);
@@ -741,27 +755,177 @@
     }
     .person-follow-btn.following:hover { background: var(--bg-hover); }
 
-    .chat-layout {
+    .chats-list-header {
+        margin-bottom: 16px;
+    }
+    .chats-list-header h2 {
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--text-primary);
+    }
+
+    .chat-list-item {
         display: flex;
-        flex-direction: column;
-        height: calc(100vh - 220px - env(safe-area-inset-bottom, 0px));
-        height: calc(100dvh - 220px - env(safe-area-inset-bottom, 0px));
-        min-height: 320px;
+        align-items: center;
+        gap: 12px;
         background: var(--bg-card);
         border: 1px solid var(--border);
         border-radius: var(--radius-lg);
+        padding: 12px 14px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: border-color var(--transition), background var(--transition), transform var(--transition);
+        box-shadow: var(--shadow-sm);
+    }
+    .chat-list-item:hover {
+        border-color: var(--accent);
+        background: var(--bg-elevated);
+        transform: translateY(-1px);
+    }
+    .chat-list-item.unread {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+    }
+
+    .chat-list-avatar-wrap {
+        position: relative;
+        flex-shrink: 0;
+    }
+    .chat-list-avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: var(--bg-elevated);
+        object-fit: cover;
+        border: 2px solid var(--border);
+        display: block;
+    }
+    .chat-list-online {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 12px;
+        height: 12px;
+        background: #2ecc71;
+        border: 2px solid var(--bg-card);
+        border-radius: 50%;
+    }
+
+    .chat-list-content {
+        flex: 1;
+        min-width: 0;
+    }
+    .chat-list-name {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--text-primary);
+        margin-bottom: 3px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .chat-list-preview {
+        font-size: 13px;
+        color: var(--text-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .chat-list-preview .you {
+        color: var(--text-secondary);
+        font-weight: 600;
+    }
+
+    .chat-list-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+    .chat-list-time {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+    .chat-list-badge {
+        background: var(--accent);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 10px;
+        min-width: 20px;
+        text-align: center;
+    }
+
+    .chat-room-topbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+    .chat-back-btn {
+        background: transparent;
+        color: var(--accent);
+        border: none;
+        font-size: 22px;
+        cursor: pointer;
+        padding: 4px 8px;
+        box-shadow: none;
+        font-weight: 700;
+    }
+    .chat-back-btn:hover:not(:disabled) { background: var(--bg-elevated); }
+    .chat-room-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--bg-elevated);
+        object-fit: cover;
+        border: 2px solid var(--border);
+        flex-shrink: 0;
+        transition: transform var(--transition);
+    }
+    .chat-room-avatar:hover { transform: scale(1.08); }
+    .chat-room-name-block {
+        flex: 1;
+        min-width: 0;
+    }
+    .chat-room-name {
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .chat-room-name-block:hover .chat-room-name { text-decoration: underline; }
+    .chat-room-login {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .chat-layout {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 300px - env(safe-area-inset-bottom, 0px));
+        height: calc(100dvh - 300px - env(safe-area-inset-bottom, 0px));
+        min-height: 320px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
         overflow: hidden;
         box-shadow: var(--shadow-md);
-    }
-    .chat-header-title {
-        padding: 14px;
-        background: var(--bg-elevated);
-        border-bottom: 1px solid var(--border);
-        font-weight: 700;
-        text-align: center;
-        color: var(--blue);
-        font-size: 14px;
-        display: flex; align-items: center; justify-content: center; gap: 6px;
     }
     .chat-messages {
         flex: 1;
@@ -854,15 +1018,32 @@
         border-radius: var(--radius-md);
         transition: color var(--transition), background var(--transition);
         font-weight: 600;
+        position: relative;
     }
     .nav-item:hover { color: var(--text-secondary); }
     .nav-item.active { color: var(--accent); }
     .nav-icon { font-size: 20px; line-height: 1; }
 
+    .nav-badge {
+        position: absolute;
+        top: 0;
+        right: calc(50% - 20px);
+        background: var(--accent);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 5px;
+        border-radius: 8px;
+        min-width: 16px;
+        text-align: center;
+        line-height: 14px;
+    }
+
     #postsContainer,
     #peopleContainer,
     #userPostsContainer,
-    #myPostsContainer {
+    #myPostsContainer,
+    #chatsList {
         padding-bottom: 40px;
     }
 
@@ -874,8 +1055,8 @@
         .msg { max-width: 85%; }
         body { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
         .chat-layout {
-            height: calc(100vh - 240px - env(safe-area-inset-bottom, 0px));
-            height: calc(100dvh - 240px - env(safe-area-inset-bottom, 0px));
+            height: calc(100vh - 320px - env(safe-area-inset-bottom, 0px));
+            height: calc(100dvh - 320px - env(safe-area-inset-bottom, 0px));
         }
     }
 </style>
@@ -936,6 +1117,16 @@
     let lastPostsHash     = '';
     let pollInterval      = null;
     let isEditingProfile  = false;
+    let readChats         = {};
+
+    function loadReadChats() {
+        try {
+            readChats = JSON.parse(localStorage.getItem('itp_read_chats') || "{}");
+        } catch (e) { readChats = {}; }
+    }
+    function saveReadChats() {
+        localStorage.setItem('itp_read_chats', JSON.stringify(readChats));
+    }
 
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
@@ -980,6 +1171,22 @@
         const d = new Date(iso);
         if (isNaN(d.getTime())) return "—";
         return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
+    }
+
+    function formatChatTime(ts) {
+        if (!ts) return "";
+        const d = new Date(ts * 1000);
+        const now = new Date();
+        const isToday = d.toDateString() === now.toDateString();
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        if (isToday) return `${hh}:${mm}`;
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        if (d.toDateString() === yesterday.toDateString()) return 'вчера';
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        return `${dd}.${mo}`;
     }
 
     function isBadFaker(str) {
@@ -1113,6 +1320,7 @@
         localStorage.removeItem('itp_session');
         localStorage.removeItem('itp_liked');
         localStorage.removeItem('itp_theme');
+        localStorage.removeItem('itp_read_chats');
         location.reload();
     }
 
@@ -1123,6 +1331,7 @@
         activeChatPartner = null; viewedUser = null;
         allServerPosts = []; allUsers = []; lastPostsHash = '';
         isEditingProfile = false;
+        readChats = {};
         if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
 
         document.getElementById('authLogin').value = "";
@@ -1140,6 +1349,7 @@
     }
 
     async function enterApp() {
+        loadReadChats();
         updateProfileUI();
         document.getElementById('headerUserBadge').style.display = 'flex';
         document.getElementById('mainNav').style.display = 'flex';
@@ -1159,6 +1369,9 @@
             data.forEach(u => { u.isVerified = normalizeVerified(u.isVerified); });
             allUsers = data;
             renderPeopleList();
+            if (document.getElementById('chatsListView').style.display !== 'none') {
+                renderChatsList();
+            }
         } catch (e) {
             console.error("loadUsers error:", e);
             document.getElementById('peopleContainer').innerHTML =
@@ -1377,9 +1590,11 @@
         if (screenEl) screenEl.classList.add('active');
         if (navEl)    navEl.classList.add('active');
 
-        if (screenName === 'chats' && activeChatPartner) renderDirectMessages();
         if (screenName === 'profile') { updateMyStats(); renderMyPosts(); }
         if (screenName === 'people') renderPeopleList();
+        if (screenName === 'chats') {
+            closeChatRoom();
+        }
 
         window.scrollTo({ top: 0, behavior: 'instant' });
     }
@@ -1403,8 +1618,12 @@
                 renderFeed();
                 renderMyPosts();
                 if (activeChatPartner) renderDirectMessages();
+                if (document.getElementById('chatsListView').style.display !== 'none') {
+                    renderChatsList();
+                }
                 updateMyStats();
                 if (viewedUser) renderUserProfile(viewedUser);
+                updateChatsNavBadge();
             }
         } catch (e) {
             if (force) {
@@ -1490,7 +1709,7 @@
                     </div>
                     ${!isMine ? `
                     <div class="action-btn chat-link"
-                         onclick="event.stopPropagation(); startChat(${JSON.stringify(info.author).replace(/"/g, '&quot;')}, ${JSON.stringify(info.authorId).replace(/"/g, '&quot;')})">
+                         onclick="event.stopPropagation(); openChatWith(${JSON.stringify(info.author).replace(/"/g, '&quot;')}, ${JSON.stringify(info.authorId).replace(/"/g, '&quot;')}, ${JSON.stringify(info.seed).replace(/"/g, '&quot;')}, ${JSON.stringify(info.customAvatar).replace(/"/g, '&quot;')}, ${JSON.stringify(info.isVerified).replace(/"/g, '&quot;')}, '')">
                         💬 Личное сообщение
                     </div>` : ''}
                     ${isMine ? `
@@ -1839,31 +2058,220 @@
 
     function openChatWithViewedUser() {
         if (!viewedUser) return;
-        activeChatPartner = { id: viewedUser.id, name: viewedUser.name };
-        switchScreen('chats');
-        renderDirectMessages();
+        const u = allUsers.find(x => String(x.id) === String(viewedUser.id));
+        openChatWith(
+            viewedUser.name,
+            viewedUser.id,
+            viewedUser.seed,
+            viewedUser.customAvatar,
+            viewedUser.isVerified,
+            u ? (u.login || "") : ""
+        );
     }
 
     /* ==================== ЧАТЫ ==================== */
-    function startChat(partnerName, partnerId) {
-        if (!partnerName || !currentUser) return;
-        if (!partnerId || String(partnerId) === String(currentUserId)) return;
+    function getChatPartners() {
+        const map = new Map();
 
-        activeChatPartner = { id: String(partnerId), name: partnerName };
-        switchScreen('chats');
-        renderDirectMessages();
+        allServerPosts.forEach(p => {
+            if (!p || !p.name) return;
+            const parts = p.name.split(CHAT_SEP);
+            if (parts.length < 2) return;
+            const body = parts[1] || "";
+            const m = body.match(/^\[CHAT:(\d+)->(\d+)\]/);
+            if (!m) return;
+
+            const fromId = String(m[1]);
+            const toId   = String(m[2]);
+            const myId   = String(currentUserId);
+
+            let partnerId = null;
+            if (fromId === myId) partnerId = toId;
+            else if (toId === myId) partnerId = fromId;
+            else return;
+
+            if (partnerId === myId) return;
+
+            const createdAt = Number(p.id) || 0;
+            let preview = body.replace(/^\[CHAT:\d+->\d+\]\s?/, "").trim();
+            if (preview.length > 60) preview = preview.slice(0, 60) + '…';
+
+            const existing = map.get(partnerId);
+            if (!existing || createdAt > existing.lastMsgId) {
+                map.set(partnerId, {
+                    partnerId,
+                    lastMsgId: createdAt,
+                    lastText: preview,
+                    fromMe: fromId === myId,
+                    lastAt: Math.floor(Date.now() / 1000)
+                });
+            }
+        });
+
+        const result = [];
+        map.forEach(v => {
+            const u = allUsers.find(x => String(x.id) === v.partnerId);
+            if (u) result.push(Object.assign({}, v, {
+                name: u.name,
+                login: u.login,
+                avatarSeed: u.avatarSeed || u.login,
+                customAvatar: u.customAvatar || "",
+                isVerified: normalizeVerified(u.isVerified)
+            }));
+        });
+
+        result.sort((a, b) => b.lastMsgId - a.lastMsgId);
+        return result;
     }
 
-    function renderDirectMessages() {
+    function countUnreadFor(partnerId) {
+        const myId = String(currentUserId);
+        const pid  = String(partnerId);
+        const lastRead = Number(readChats[pid] || 0);
+        let count = 0;
+        allServerPosts.forEach(p => {
+            const id = Number(p.id) || 0;
+            if (id <= lastRead) return;
+            const parts = (p.name || "").split(CHAT_SEP);
+            const body = parts[1] || "";
+            const tag = `[CHAT:${pid}->${myId}]`;
+            if (body.startsWith(tag)) count++;
+        });
+        return count;
+    }
+
+    function updateChatsNavBadge() {
         if (!currentUser) return;
-        if (!activeChatPartner) {
-            document.getElementById('activeChatTitle').innerText = "Выберите пользователя в Ленте для диалога";
-            document.getElementById('chatMessagesContainer').innerHTML = "";
+        const total = getChatPartners().reduce((s, c) => s + countUnreadFor(c.partnerId), 0);
+        const nav = document.getElementById('nav-chats');
+        if (!nav) return;
+        let badge = nav.querySelector('.nav-badge');
+        if (total > 0) {
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'nav-badge';
+                nav.appendChild(badge);
+            }
+            badge.textContent = total > 99 ? '99+' : total;
+        } else if (badge) {
+            badge.remove();
+        }
+    }
+
+    function renderChatsList() {
+        const container = document.getElementById('chatsList');
+        if (!container || !currentUser) return;
+
+        const partners = getChatPartners();
+
+        if (partners.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <p>Пока нет диалогов.<br>Напишите кому-нибудь в ленте или в профиле.</p>
+                </div>
+            `;
+            updateChatsNavBadge();
             return;
         }
 
-        const titleEl = document.getElementById('activeChatTitle');
-        titleEl.innerHTML = `Диалог с: ${escapeHtml(activeChatPartner.name)}`;
+        const frag = document.createDocumentFragment();
+        partners.forEach(c => {
+            const avatarSrc = (c.customAvatar && String(c.customAvatar).startsWith("data:image"))
+                ? c.customAvatar
+                : getUserAvatarUrl(c.avatarSeed);
+
+            const badge = verifiedBadgeFromType(c.isVerified);
+            const unread = countUnreadFor(c.partnerId);
+
+            let displayName = c.name;
+            if (isBadFaker(displayName)) displayName = c.login || "Аноним";
+
+            const item = document.createElement('div');
+            item.className = 'chat-list-item' + (unread > 0 ? ' unread' : '');
+            item.innerHTML = `
+                <div class="chat-list-avatar-wrap">
+                    <img class="chat-list-avatar" src="${escapeHtml(avatarSrc)}" alt=""
+                         onerror="this.src='https://robohash.org/default?set=set4'">
+                    <span class="chat-list-online"></span>
+                </div>
+                <div class="chat-list-content">
+                    <div class="chat-list-name">${escapeHtml(displayName)}${badge}</div>
+                    <div class="chat-list-preview">
+                        ${c.fromMe ? '<span class="you">Вы: </span>' : ''}${escapeHtml(c.lastText) || 'Нет сообщений'}
+                    </div>
+                </div>
+                <div class="chat-list-meta">
+                    <div class="chat-list-time">${formatChatTime(c.lastAt)}</div>
+                    ${unread > 0 ? `<div class="chat-list-badge">${unread > 99 ? '99+' : unread}</div>` : ''}
+                </div>
+            `;
+
+            item.onclick = () => {
+                openChatWith(c.name, c.partnerId, c.avatarSeed, c.customAvatar, c.isVerified, c.login);
+            };
+
+            frag.appendChild(item);
+        });
+
+        container.innerHTML = "";
+        container.appendChild(frag);
+        updateChatsNavBadge();
+    }
+
+    function openChatWith(name, partnerId, seed, customAvatar, isVerified, login) {
+        if (!partnerId || String(partnerId) === String(currentUserId)) return;
+
+        activeChatPartner = {
+            id: String(partnerId),
+            name: name || "Аноним",
+            seed: seed || "default",
+            customAvatar: customAvatar || "",
+            isVerified: normalizeVerified(isVerified),
+            login: login || ""
+        };
+
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('screen-chats').classList.add('active');
+        document.getElementById('nav-chats').classList.add('active');
+
+        document.getElementById('chatsListView').style.display = 'none';
+        document.getElementById('chatRoomView').style.display = 'block';
+
+        const avatarSrc = (customAvatar && String(customAvatar).startsWith("data:image"))
+            ? customAvatar
+            : getUserAvatarUrl(seed);
+        document.getElementById('chatRoomAvatar').src = avatarSrc;
+        document.getElementById('chatRoomName').innerHTML = `${escapeHtml(name || "Аноним")}${verifiedBadgeFromType(isVerified)}`;
+        document.getElementById('chatRoomLogin').textContent = login ? ('@' + login) : '';
+
+        renderDirectMessages();
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
+    // ==================== ВАЖНО: ПЕРЕХОД В ПРОФИЛЬ ИЗ ЧАТА ====================
+    function openChatPartnerProfile() {
+        if (!activeChatPartner) return;
+        openUserProfile(
+            activeChatPartner.name,
+            activeChatPartner.id,
+            activeChatPartner.seed,
+            activeChatPartner.customAvatar,
+            activeChatPartner.isVerified
+        );
+    }
+
+    function closeChatRoom() {
+        activeChatPartner = null;
+        const listView = document.getElementById('chatsListView');
+        const roomView = document.getElementById('chatRoomView');
+        if (listView) listView.style.display = 'block';
+        if (roomView) roomView.style.display = 'none';
+        renderChatsList();
+    }
+
+    function renderDirectMessages() {
+        if (!currentUser || !activeChatPartner) return;
 
         const container = document.getElementById('chatMessagesContainer');
         const prevScroll = container.scrollTop;
@@ -1887,25 +2295,31 @@
 
         if (messages.length === 0) {
             container.innerHTML = "<p style='text-align:center;color:#888;margin-top:40px;'>Нет сообщений. Напишите первым!</p>";
-            return;
+        } else {
+            const frag = document.createDocumentFragment();
+            messages.forEach(m => {
+                const parts = m.name.split(CHAT_SEP);
+                const body = parts[1] || "";
+                const messageContent = body.replace(/^\[CHAT:\d+->\d+\]\s?/, "");
+                const isOutgoing = body.startsWith(tagOut);
+
+                const div = document.createElement('div');
+                div.className = `msg ${isOutgoing ? 'outgoing' : 'incoming'}`;
+                div.innerText = messageContent;
+                frag.appendChild(div);
+            });
+            container.appendChild(frag);
         }
-
-        const frag = document.createDocumentFragment();
-        messages.forEach(m => {
-            const parts = m.name.split(CHAT_SEP);
-            const body = parts[1] || "";
-            const messageContent = body.replace(/^\[CHAT:\d+->\d+\]\s?/, "");
-            const isOutgoing = body.startsWith(tagOut);
-
-            const div = document.createElement('div');
-            div.className = `msg ${isOutgoing ? 'outgoing' : 'incoming'}`;
-            div.innerText = messageContent;
-            frag.appendChild(div);
-        });
-        container.appendChild(frag);
 
         if (wasAtBottom) container.scrollTop = container.scrollHeight;
         else container.scrollTop = prevScroll;
+
+        if (messages.length > 0) {
+            const maxId = Math.max.apply(null, messages.map(m => Number(m.id) || 0));
+            readChats[partnerId] = maxId;
+            saveReadChats();
+            updateChatsNavBadge();
+        }
     }
 
     async function sendDirectMessage() {
