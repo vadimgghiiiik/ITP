@@ -27,6 +27,7 @@
                    onkeypress="if(event.key==='Enter'){event.preventDefault();doLogin();}">
             <button onclick="doLogin()" id="loginBtn">Войти</button>
             <button class="btn-secondary" onclick="switchScreen('register')">Регистрация</button>
+            <button class="btn-secondary" onclick="clearLocalData()" style="font-size:12px;opacity:.7;">Очистить локальные данные</button>
             <p class="auth-error" id="authError"></p>
         </div>
     </div>
@@ -118,6 +119,9 @@
                 <button class="btn-secondary logout-btn" onclick="logout()">Выйти</button>
             </div>
         </div>
+
+        <h4 class="user-posts-title">Мои посты</h4>
+        <div id="myPostsContainer"></div>
     </div>
 
     <!-- ВКЛАДКА 5: ЧУЖОЙ ПРОФИЛЬ -->
@@ -175,9 +179,6 @@
     </nav>
 
 <style>
-    /* ============================================================
-       ПЕРЕМЕННЫЕ И ТЕМЫ
-       ============================================================ */
     :root {
         --bg-body: #0a0a0b;
         --bg-header: #16171a;
@@ -185,28 +186,22 @@
         --bg-elevated: #22242a;
         --bg-input: #101114;
         --bg-hover: #26282f;
-
         --text-primary: #f5f5f7;
         --text-secondary: #b6b8c0;
         --text-muted: #6e7078;
-
         --accent: #ff4d4d;
         --accent-hover: #e03a3a;
         --accent-soft: rgba(255, 77, 77, 0.12);
-
         --blue: #4bacff;
         --border: #2a2c33;
         --border-hover: #3a3c44;
-
         --shadow-sm: 0 1px 2px rgba(0,0,0,.25);
         --shadow-md: 0 4px 14px rgba(0,0,0,.35);
         --shadow-lg: 0 12px 32px rgba(0,0,0,.5);
-
         --radius-sm: 8px;
         --radius-md: 12px;
         --radius-lg: 16px;
         --radius-pill: 999px;
-
         --transition: .18s cubic-bezier(.4,0,.2,1);
     }
 
@@ -217,19 +212,15 @@
         --bg-elevated: #f0f1f4;
         --bg-input: #f0f1f4;
         --bg-hover: #e8eaee;
-
         --text-primary: #14161a;
         --text-secondary: #4a4d55;
         --text-muted: #8a8d94;
-
         --accent: #e63946;
         --accent-hover: #c92c39;
         --accent-soft: rgba(230, 57, 70, 0.10);
-
         --blue: #1877f2;
         --border: #e1e3e8;
         --border-hover: #c8cad0;
-
         --shadow-sm: 0 1px 2px rgba(0,0,0,.06);
         --shadow-md: 0 4px 14px rgba(0,0,0,.08);
         --shadow-lg: 0 12px 32px rgba(0,0,0,.12);
@@ -256,7 +247,6 @@
         transition: background var(--transition), color var(--transition);
     }
 
-    /* ======================== HEADER ======================== */
     header {
         background: var(--bg-header);
         padding: 12px 16px;
@@ -315,7 +305,6 @@
         object-fit: cover; flex-shrink: 0;
     }
 
-    /* ======================== SCREENS ======================== */
     .screen {
         display: none;
         padding: 16px 16px 40px;
@@ -330,7 +319,6 @@
         to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ======================== AUTH ======================== */
     .auth-card {
         background: var(--bg-card);
         border: 1px solid var(--border);
@@ -372,7 +360,6 @@
         word-wrap: break-word;
     }
 
-    /* ======================== BUTTONS ======================== */
     button {
         background: var(--accent);
         color: #fff;
@@ -400,7 +387,6 @@
     .logout-btn { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
     .logout-btn:hover:not(:disabled) { background: var(--accent-soft); }
 
-    /* ======================== FEED FORM ======================== */
     .feed-form {
         background: var(--bg-card);
         border: 1px solid var(--border);
@@ -438,7 +424,6 @@
     .post-counter.warn { color: #f5a623; }
     .post-counter.danger { color: var(--accent); }
 
-    /* ======================== POSTS ======================== */
     .post {
         background: var(--bg-card);
         border: 1px solid var(--border);
@@ -498,7 +483,6 @@
     .action-btn.delete-btn { color: var(--accent); margin-left: auto; }
     .action-btn.delete-btn:hover { background: var(--accent-soft); }
 
-    /* ======================== VERIFIED BADGES ======================== */
     .verified-badge {
         display: inline-block; width: 18px; height: 18px;
         flex-shrink: 0;
@@ -517,7 +501,6 @@
         background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='%232ecc71' stroke='%232ecc71' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='white'/></svg>");
     }
 
-    /* ======================== PROFILE ======================== */
     .profile-card {
         background: var(--bg-card);
         border: 1px solid var(--border);
@@ -649,7 +632,6 @@
         font-weight: 700;
     }
 
-    /* ======================== PEOPLE ======================== */
     .people-search { margin-bottom: 16px; }
     .people-search input {
         width: 100%;
@@ -712,7 +694,6 @@
     }
     .person-follow-btn.following:hover { background: var(--bg-hover); }
 
-    /* ======================== CHATS ======================== */
     .chat-layout {
         display: flex;
         flex-direction: column;
@@ -799,7 +780,6 @@
         flex-shrink: 0;
     }
 
-    /* ======================== NAV ======================== */
     nav {
         position: fixed;
         bottom: 0; left: 0; right: 0;
@@ -832,18 +812,13 @@
     .nav-item.active { color: var(--accent); }
     .nav-icon { font-size: 20px; line-height: 1; }
 
-    /* ======================== ФИКС СКРОЛЛА ======================== */
     #postsContainer,
     #peopleContainer,
-    #userPostsContainer {
+    #userPostsContainer,
+    #myPostsContainer {
         padding-bottom: 40px;
     }
 
-    .screen.active {
-        overflow-y: visible;
-    }
-
-    /* ======================== MOBILE ======================== */
     @media (max-width: 480px) {
         .screen { padding: 12px 12px 40px; }
         .logo { font-size: 20px; }
@@ -859,9 +834,6 @@
 </style>
 
 <script>
-    /* ============================================================
-       ПЕРЕКЛЮЧАТЕЛЬ ТЕМЫ
-       ============================================================ */
     function applyTheme(theme) {
         if (theme === 'light') {
             document.body.classList.add('light');
@@ -884,9 +856,6 @@
         applyTheme(saved);
     })();
 
-    /* ============================================================
-       КОНФИГ
-       ============================================================ */
     const BASE_URL  = "https://6ac8473b75a4ce3fe7228a08.mockapi.io/api/v1/";
     const API_URL   = BASE_URL + "posts";
     const USERS_URL = BASE_URL + "Users";
@@ -904,26 +873,17 @@
         "community": "green"
     };
 
-    /* ============================================================
-       СОСТОЯНИЕ
-       ============================================================ */
     let currentUser    = null;
     let currentUserId  = null;
     let pendingAvatar  = null;
-
     let activeChatPartner = null;
     let viewedUser        = null;
-
     let allServerPosts    = [];
     let allUsers          = [];
     let lastPostsHash     = '';
     let pollInterval      = null;
+    let isEditingProfile  = false;
 
-    let isEditingProfile = false;
-
-    /* ============================================================
-       УТИЛИТЫ
-       ============================================================ */
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
         return String(str)
@@ -959,9 +919,7 @@
         try {
             const arr = JSON.parse(user.following);
             return Array.isArray(arr) ? arr.map(String) : [];
-        } catch (e) {
-            return [];
-        }
+        } catch (e) { return []; }
     }
 
     function formatDate(iso) {
@@ -975,9 +933,7 @@
         return !str || String(str).startsWith("Invalid faker method");
     }
 
-    /* ============================================================
-       АВТОРИЗАЦИЯ
-       ============================================================ */
+    /* ==================== АВТОРИЗАЦИЯ ==================== */
     async function doLogin() {
         const login    = document.getElementById('authLogin').value.trim().toLowerCase();
         const password = document.getElementById('authPassword').value;
@@ -1051,11 +1007,7 @@
                 body: JSON.stringify(newUser)
             });
 
-            if (!res.ok) {
-                const txt = await res.text();
-                console.error("Register server response:", txt);
-                throw new Error(`HTTP ${res.status}`);
-            }
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const created = await res.json();
 
             saveSession(created);
@@ -1102,6 +1054,14 @@
         return false;
     }
 
+    function clearLocalData() {
+        if (!confirm("Удалить сохранённую сессию и локальные данные?")) return;
+        localStorage.removeItem('itp_session');
+        localStorage.removeItem('itp_liked');
+        localStorage.removeItem('itp_theme');
+        location.reload();
+    }
+
     function logout() {
         if (!confirm("Выйти из аккаунта?")) return;
         localStorage.removeItem('itp_session');
@@ -1135,9 +1095,7 @@
         startPolling();
     }
 
-    /* ============================================================
-       ЗАГРУЗКА ПОЛЬЗОВАТЕЛЕЙ
-       ============================================================ */
+    /* ==================== ЗАГРУЗКА ПОЛЬЗОВАТЕЛЕЙ ==================== */
     async function loadUsers() {
         try {
             const res = await fetch(USERS_URL);
@@ -1153,9 +1111,7 @@
         }
     }
 
-    /* ============================================================
-       СВОЙ ПРОФИЛЬ
-       ============================================================ */
+    /* ==================== СВОЙ ПРОФИЛЬ ==================== */
     function updateProfileUI() {
         if (!currentUser) return;
         const avatarUrl = getUserAvatarUrl(currentUser.avatarSeed, currentUser.customAvatar);
@@ -1195,6 +1151,63 @@
         document.getElementById('myPostsCount').textContent = postCount;
         document.getElementById('myLikesCount').textContent = likeCount;
         document.getElementById('myFollowingCount').textContent = parseFollowing(currentUser).length;
+    }
+
+    function renderMyPosts() {
+        const container = document.getElementById('myPostsContainer');
+        if (!container || !currentUser) return;
+
+        const myPosts = allServerPosts.filter(p => {
+            if (!p || !p.name) return false;
+            const parts = p.name.split(CHAT_SEP);
+            const body = parts[1] || "";
+            if (body.startsWith("[CHAT:")) return false;
+            return String(parts[5]) === String(currentUserId);
+        });
+        myPosts.sort((a, b) => Number(b.id) - Number(a.id));
+
+        container.innerHTML = "";
+
+        if (myPosts.length === 0) {
+            container.innerHTML = "<p style='text-align:center;color:#888;margin-top:20px;'>У вас пока нет постов.</p>";
+            return;
+        }
+
+        const localLikes = JSON.parse(localStorage.getItem('itp_liked') || "[]");
+        const frag = document.createDocumentFragment();
+        const avatarSrc = getUserAvatarUrl(currentUser.avatarSeed, currentUser.customAvatar);
+        const badge = verifiedBadgeFromType(currentUser.isVerified);
+
+        myPosts.forEach(p => {
+            const info = unpackPost(p);
+            let likesCount = Number(p.avatar);
+            if (!likesCount || isNaN(likesCount)) likesCount = 0;
+            const isLiked = localLikes.includes(String(p.id));
+
+            const postEl = document.createElement('div');
+            postEl.className = 'post';
+            postEl.innerHTML = `
+                <div class="post-header">
+                    <img class="post-avatar" src="${escapeHtml(avatarSrc)}" alt=""
+                         onerror="this.src='https://robohash.org/default?set=set4'">
+                    <div class="author-details">
+                        <span class="author-name">${escapeHtml(currentUser.name)}${badge}</span>
+                    </div>
+                </div>
+                <div class="post-content">${escapeHtml(info.content) || "Пустое сообщение"}</div>
+                <div class="post-actions">
+                    <div class="action-btn ${isLiked ? 'liked' : ''}"
+                         id="like-btn-${escapeHtml(p.id)}"
+                         onclick="toggleLike('${escapeHtml(p.id)}', ${likesCount})">
+                        ❤️ <span id="like-count-${escapeHtml(p.id)}">${likesCount}</span>
+                    </div>
+                    <div class="action-btn delete-btn" onclick="deletePost('${escapeHtml(p.id)}')">
+                        🗑️ Удалить
+                    </div>
+                </div>`;
+            frag.appendChild(postEl);
+        });
+        container.appendChild(frag);
     }
 
     function handleAvatarUpload(event) {
@@ -1264,6 +1277,12 @@
                     avatarSeed: currentUser.avatarSeed || currentUser.login
                 })
             });
+
+            if (res.status === 404) {
+                alert("Аккаунт не найден на сервере (404). Возможно, база была очищена. Войдите заново.");
+                logout();
+                return;
+            }
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
             const updated = await res.json();
@@ -1275,6 +1294,7 @@
 
             localStorage.setItem('itp_session', JSON.stringify(currentUser));
             updateProfileUI();
+            renderMyPosts();
 
             const idx = allUsers.findIndex(u => String(u.id) === String(currentUserId));
             if (idx !== -1) {
@@ -1292,9 +1312,7 @@
         }
     }
 
-    /* ============================================================
-       НАВИГАЦИЯ
-       ============================================================ */
+    /* ==================== НАВИГАЦИЯ ==================== */
     function switchScreen(screenName) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1305,15 +1323,13 @@
         if (navEl)    navEl.classList.add('active');
 
         if (screenName === 'chats' && activeChatPartner) renderDirectMessages();
-        if (screenName === 'profile') updateMyStats();
+        if (screenName === 'profile') { updateMyStats(); renderMyPosts(); }
         if (screenName === 'people') renderPeopleList();
 
         window.scrollTo({ top: 0, behavior: 'instant' });
     }
 
-    /* ============================================================
-       ЗАГРУЗКА ПОСТОВ
-       ============================================================ */
+    /* ==================== ЗАГРУЗКА ПОСТОВ ==================== */
     async function loadData(force = false) {
         if (!currentUser) return;
         try {
@@ -1330,6 +1346,7 @@
 
             if (changed) {
                 renderFeed();
+                renderMyPosts();
                 if (activeChatPartner) renderDirectMessages();
                 updateMyStats();
                 if (viewedUser) renderUserProfile(viewedUser);
@@ -1355,9 +1372,7 @@
         };
     }
 
-    /* ============================================================
-       ЛЕНТА
-       ============================================================ */
+    /* ==================== ЛЕНТА ==================== */
     function renderFeed() {
         const container = document.getElementById('postsContainer');
         container.innerHTML = "";
@@ -1497,7 +1512,9 @@
             const response = await fetch(`${API_URL}/${postId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error();
             allServerPosts = allServerPosts.filter(p => String(p.id) !== String(postId));
-            renderFeed(); updateMyStats();
+            renderFeed();
+            renderMyPosts();
+            updateMyStats();
             if (viewedUser) renderUserProfile(viewedUser);
         } catch (e) {
             alert("Не удалось удалить пост.");
@@ -1554,9 +1571,7 @@
         else if (txt.length > MAX_POST_LEN * 0.7) counter.classList.add('warn');
     }
 
-    /* ============================================================
-       СПИСОК ЛЮДЕЙ
-       ============================================================ */
+    /* ==================== СПИСОК ЛЮДЕЙ ==================== */
     function renderPeopleList() {
         const container = document.getElementById('peopleContainer');
         if (!container || !currentUser) return;
@@ -1650,9 +1665,7 @@
         }
     }
 
-    /* ============================================================
-       ЧУЖОЙ ПРОФИЛЬ
-       ============================================================ */
+    /* ==================== ЧУЖОЙ ПРОФИЛЬ ==================== */
     function openUserProfile(name, authorId, seed, customAvatar, isVerified) {
         if (!authorId) return;
         if (String(authorId) === String(currentUserId)) { switchScreen('profile'); return; }
@@ -1776,9 +1789,7 @@
         renderDirectMessages();
     }
 
-    /* ============================================================
-       ЧАТЫ
-       ============================================================ */
+    /* ==================== ЧАТЫ ==================== */
     function startChat(partnerName, partnerId) {
         if (!partnerName || !currentUser) return;
         if (!partnerId || String(partnerId) === String(currentUserId)) return;
@@ -1878,9 +1889,7 @@
         }
     }
 
-    /* ============================================================
-       ПОЛЛИНГ
-       ============================================================ */
+    /* ==================== ПОЛЛИНГ ==================== */
     function startPolling() {
         if (pollInterval) clearInterval(pollInterval);
         pollInterval = setInterval(() => {
@@ -1906,9 +1915,7 @@
         if (pollInterval) clearInterval(pollInterval);
     });
 
-    /* ============================================================
-       ИНИЦИАЛИЗАЦИЯ
-       ============================================================ */
+    /* ==================== ИНИЦИАЛИЗАЦИЯ ==================== */
     document.addEventListener('DOMContentLoaded', async () => {
         const postText = document.getElementById('postText');
         if (postText) postText.addEventListener('input', updatePostCounter);
