@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ИТП — Социальная сеть</title>
 </head>
 <body>
@@ -233,6 +233,23 @@
         min-height: 100dvh;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
+        touch-action: manipulation;
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    * { -webkit-touch-callout: none; }
+
+    input, textarea {
+        -webkit-user-select: text;
+        user-select: text;
+    }
+
+    button, .nav-item, .action-btn, .post-header, .person-card, .user-badge, .theme-toggle, .avatar-wrapper {
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
     }
 
     body {
@@ -483,6 +500,7 @@
     .action-btn.delete-btn { color: var(--accent); margin-left: auto; }
     .action-btn.delete-btn:hover { background: var(--accent-soft); }
 
+    /* ==================== ГАЛОЧКИ ==================== */
     .verified-badge {
         display: inline-block; width: 18px; height: 18px;
         flex-shrink: 0;
@@ -494,11 +512,8 @@
     .verified-badge.verified-blue {
         background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='%231d9bf0' stroke='%231d9bf0' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='white'/></svg>");
     }
-    .verified-badge.verified-gold {
-        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='%23ffb700' stroke='%23ffb700' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='white'/></svg>");
-    }
-    .verified-badge.verified-green {
-        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='%232ecc71' stroke='%232ecc71' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='white'/></svg>");
+    .verified-badge.verified-white {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='white' stroke='%23cccccc' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='%23111'/></svg>");
     }
 
     .profile-card {
@@ -867,11 +882,19 @@
     const MAX_BIO_LEN   = 200;
     const CHAT_SEP      = "|||";
 
+    // Только blue и white. Пустая строка — нет галочки.
     const VERIFIED_LOGINS = {
-        "android":   "blue",
-        "webcode":   "gold",
-        "community": "green"
+        "android": "blue",
+        "webcode": "white"
     };
+
+    // Допустимые значения isVerified
+    const VALID_VERIFIED = ["", "blue", "white"];
+
+    function normalizeVerified(value) {
+        const v = String(value || "").toLowerCase().trim();
+        return VALID_VERIFIED.includes(v) ? v : "";
+    }
 
     let currentUser    = null;
     let currentUserId  = null;
@@ -895,9 +918,9 @@
     }
 
     function verifiedBadgeFromType(type) {
-        if (type === "blue")  return '<span class="verified-badge verified-blue"  title="Верифицирован (Android)"></span>';
-        if (type === "gold")  return '<span class="verified-badge verified-gold"  title="Верифицирован (WebCode)"></span>';
-        if (type === "green") return '<span class="verified-badge verified-green" title="Верифицирован (сообщество)"></span>';
+        const t = normalizeVerified(type);
+        if (t === "blue")  return '<span class="verified-badge verified-blue"  title="Синяя галочка"></span>';
+        if (t === "white") return '<span class="verified-badge verified-white" title="Белая галочка"></span>';
         return "";
     }
 
@@ -987,7 +1010,7 @@
                 if (Array.isArray(found) && found.length > 0) { errEl.textContent = "Такой логин уже занят"; return; }
             }
 
-            const verified = VERIFIED_LOGINS[login] || "";
+            const verified = normalizeVerified(VERIFIED_LOGINS[login] || "");
 
             const newUser = {
                 login: login,
@@ -1031,7 +1054,7 @@
             avatarSeed: user.avatarSeed || user.login,
             customAvatar: (user.customAvatar && String(user.customAvatar).startsWith("data:image"))
                 ? user.customAvatar : null,
-            isVerified: user.isVerified || "",
+            isVerified: normalizeVerified(user.isVerified),
             bio: user.bio || "",
             createdAt: user.createdAt || "",
             following: user.following || "[]"
@@ -1046,6 +1069,7 @@
         try {
             const parsed = JSON.parse(raw);
             if (parsed && parsed.id && parsed.name) {
+                parsed.isVerified = normalizeVerified(parsed.isVerified);
                 currentUser   = parsed;
                 currentUserId = parsed.id;
                 return true;
@@ -1102,6 +1126,8 @@
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             if (!Array.isArray(data)) throw new Error('Bad users data');
+            // Нормализуем isVerified у всех
+            data.forEach(u => { u.isVerified = normalizeVerified(u.isVerified); });
             allUsers = data;
             renderPeopleList();
         } catch (e) {
@@ -1367,7 +1393,7 @@
             content:      parts[1] || "",
             seed:         parts[2] || "default",
             customAvatar: parts[3] || "",
-            isVerified:   parts[4] || "",
+            isVerified:   normalizeVerified(parts[4] || ""),
             authorId:     parts[5] || ""
         };
     }
@@ -1675,7 +1701,7 @@
             name: name || "Аноним",
             seed: seed || "default",
             customAvatar: customAvatar || "",
-            isVerified: isVerified || ""
+            isVerified: normalizeVerified(isVerified)
         };
 
         switchScreen('user');
