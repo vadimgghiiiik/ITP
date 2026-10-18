@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ИТП — Социальная сеть</title>
+    <!-- Подключение Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -38,7 +40,7 @@
             <h2>Регистрация</h2>
             <input type="text" id="regLogin" placeholder="Логин (латиница, 3-20)" maxlength="20" autocomplete="username">
             <input type="text" id="regName" placeholder="Отображаемое имя" maxlength="30">
-            <input type="password" id="regPassword" placeholder="Пароль (мин. 4)" maxlength="60" autocomplete="new-password">
+            <input type="password" id="regPassword" placeholder="Пароль (мин. 6)" maxlength="60" autocomplete="new-password">
             <input type="password" id="regPassword2" placeholder="Повтор пароля" maxlength="60" autocomplete="new-password"
                    onkeypress="if(event.key==='Enter'){event.preventDefault();doRegister();}">
             <button onclick="doRegister()" id="regBtn">Создать аккаунт</button>
@@ -107,9 +109,7 @@
             <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
 
             <input type="text" id="profileNameInput" class="profile-input" placeholder="Ваше имя" maxlength="30">
-
-            <textarea id="profileBioInput" class="profile-bio-input" placeholder="О себе (до 200 символов)"
-                      maxlength="200"></textarea>
+            <textarea id="profileBioInput" class="profile-bio-input" placeholder="О себе (до 200 символов)" maxlength="200"></textarea>
 
             <p class="profile-login">Логин: <span id="profileLoginValue">—</span></p>
             <p class="profile-login">В ИТП с: <span id="profileCreatedAt">—</span></p>
@@ -196,960 +196,216 @@
 
 <style>
     :root {
-        --bg-body: #0a0a0b;
-        --bg-header: #16171a;
-        --bg-card: #1a1b1f;
-        --bg-elevated: #22242a;
-        --bg-input: #101114;
-        --bg-hover: #26282f;
-        --text-primary: #f5f5f7;
-        --text-secondary: #b6b8c0;
-        --text-muted: #6e7078;
-        --accent: #ff4d4d;
-        --accent-hover: #e03a3a;
-        --accent-soft: rgba(255, 77, 77, 0.12);
-        --blue: #4bacff;
-        --border: #2a2c33;
-        --border-hover: #3a3c44;
-        --shadow-sm: 0 1px 2px rgba(0,0,0,.25);
-        --shadow-md: 0 4px 14px rgba(0,0,0,.35);
-        --shadow-lg: 0 12px 32px rgba(0,0,0,.5);
-        --radius-sm: 8px;
-        --radius-md: 12px;
-        --radius-lg: 16px;
-        --radius-pill: 999px;
+        --bg-body: #0a0a0b; --bg-header: #16171a; --bg-card: #1a1b1f; --bg-elevated: #22242a;
+        --bg-input: #101114; --bg-hover: #26282f; --text-primary: #f5f5f7; --text-secondary: #b6b8c0;
+        --text-muted: #6e7078; --accent: #ff4d4d; --accent-hover: #e03a3a; --accent-soft: rgba(255, 77, 77, 0.12);
+        --blue: #4bacff; --border: #2a2c33; --border-hover: #3a3c44; --shadow-sm: 0 1px 2px rgba(0,0,0,.25);
+        --shadow-md: 0 4px 14px rgba(0,0,0,.35); --shadow-lg: 0 12px 32px rgba(0,0,0,.5);
+        --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-pill: 999px;
         --transition: .18s cubic-bezier(.4,0,.2,1);
     }
-
     body.light {
-        --bg-body: #f4f5f7;
-        --bg-header: #ffffff;
-        --bg-card: #ffffff;
-        --bg-elevated: #f0f1f4;
-        --bg-input: #f0f1f4;
-        --bg-hover: #e8eaee;
-        --text-primary: #14161a;
-        --text-secondary: #4a4d55;
-        --text-muted: #8a8d94;
-        --accent: #e63946;
-        --accent-hover: #c92c39;
-        --accent-soft: rgba(230, 57, 70, 0.10);
-        --blue: #1877f2;
-        --border: #e1e3e8;
-        --border-hover: #c8cad0;
-        --shadow-sm: 0 1px 2px rgba(0,0,0,.06);
-        --shadow-md: 0 4px 14px rgba(0,0,0,.08);
-        --shadow-lg: 0 12px 32px rgba(0,0,0,.12);
+        --bg-body: #f4f5f7; --bg-header: #ffffff; --bg-card: #ffffff; --bg-elevated: #f0f1f4;
+        --bg-input: #f0f1f4; --bg-hover: #e8eaee; --text-primary: #14161a; --text-secondary: #4a4d55;
+        --text-muted: #8a8d94; --accent: #e63946; --accent-hover: #c92c39; --accent-soft: rgba(230, 57, 70, 0.10);
+        --blue: #1877f2; --border: #e1e3e8; --border-hover: #c8cad0; --shadow-sm: 0 1px 2px rgba(0,0,0,.06);
+        --shadow-md: 0 4px 14px rgba(0,0,0,.08); --shadow-lg: 0 12px 32px rgba(0,0,0,.12);
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-        width: 100%;
-        min-height: 100vh;
-        min-height: 100dvh;
-        overflow-x: hidden;
-        -webkit-overflow-scrolling: touch;
-        touch-action: manipulation;
-        -webkit-text-size-adjust: 100%;
-        -ms-text-size-adjust: 100%;
-        text-size-adjust: 100%;
-    }
-
-    * { -webkit-touch-callout: none; }
-
-    input, textarea {
-        -webkit-user-select: text;
-        user-select: text;
-    }
-
-    button, .nav-item, .action-btn, .post-header, .person-card, .user-badge, .theme-toggle, .avatar-wrapper, .chat-list-item, .chat-room-avatar, .chat-room-name-block {
-        touch-action: manipulation;
-        -webkit-user-select: none;
-        user-select: none;
-    }
-
-    body {
-        background: var(--bg-body);
-        color: var(--text-primary);
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Arial, sans-serif;
-        font-size: 15px;
-        line-height: 1.45;
-        padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
-        -webkit-tap-highlight-color: transparent;
-        -webkit-font-smoothing: antialiased;
-        transition: background var(--transition), color var(--transition);
-    }
-
-    header {
-        background: var(--bg-header);
-        padding: 12px 16px;
-        font-size: 20px;
-        font-weight: 800;
-        color: var(--accent);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid var(--border);
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        backdrop-filter: saturate(180%) blur(12px);
-        -webkit-backdrop-filter: saturate(180%) blur(12px);
-        transition: background var(--transition), border-color var(--transition);
-    }
+    html, body { width: 100%; min-height: 100vh; min-height: 100dvh; overflow-x: hidden; -webkit-overflow-scrolling: touch; touch-action: manipulation; }
+    input, textarea { -webkit-user-select: text; user-select: text; }
+    button, .nav-item, .action-btn, .post-header, .person-card, .user-badge, .theme-toggle, .avatar-wrapper, .chat-list-item, .chat-room-avatar, .chat-room-name-block { touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+    body { background: var(--bg-body); color: var(--text-primary); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Arial, sans-serif; font-size: 15px; line-height: 1.45; padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased; transition: background var(--transition), color var(--transition); }
+    header { background: var(--bg-header); padding: 12px 16px; font-size: 20px; font-weight: 800; color: var(--accent); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; backdrop-filter: saturate(180%) blur(12px); -webkit-backdrop-filter: saturate(180%) blur(12px); transition: background var(--transition), border-color var(--transition); }
     .logo { font-weight: 900; letter-spacing: .5px; font-size: 22px; }
     .header-right { display: flex; align-items: center; gap: 10px; }
-
-    .theme-toggle {
-        width: 38px; height: 38px;
-        border-radius: 50%;
-        border: 1px solid var(--border);
-        background: var(--bg-elevated);
-        color: var(--text-primary);
-        font-size: 17px;
-        cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
-        transition: background var(--transition), transform var(--transition), border-color var(--transition);
-        padding: 0; line-height: 1;
-    }
+    .theme-toggle { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text-primary); font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background var(--transition), transform var(--transition), border-color var(--transition); padding: 0; line-height: 1; }
     .theme-toggle:hover { background: var(--bg-hover); transform: rotate(20deg); }
     .theme-toggle:active { transform: scale(.92); }
-
-    .user-badge {
-        display: flex; align-items: center; gap: 8px;
-        font-size: 14px; color: var(--text-primary);
-        cursor: pointer; max-width: 60%;
-        padding: 4px 10px 4px 4px;
-        border-radius: var(--radius-pill);
-        background: var(--bg-elevated);
-        border: 1px solid var(--border);
-        transition: background var(--transition), border-color var(--transition);
-    }
+    .user-badge { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-primary); cursor: pointer; max-width: 60%; padding: 4px 10px 4px 4px; border-radius: var(--radius-pill); background: var(--bg-elevated); border: 1px solid var(--border); transition: background var(--transition), border-color var(--transition); }
     .user-badge:hover { background: var(--bg-hover); border-color: var(--border-hover); }
-    .user-badge span {
-        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        display: inline-flex; align-items: center; gap: 4px; font-weight: 600;
-    }
-    .user-badge img {
-        width: 30px; height: 30px;
-        border-radius: 50%;
-        background: var(--bg-input);
-        border: 2px solid var(--accent);
-        object-fit: cover; flex-shrink: 0;
-    }
-
-    .screen {
-        display: none;
-        padding: 16px 16px 40px;
-        max-width: 620px;
-        margin: 0 auto;
-        animation: fadeIn .25s ease;
-    }
+    .user-badge span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+    .user-badge img { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-input); border: 2px solid var(--accent); object-fit: cover; flex-shrink: 0; }
+    .screen { display: none; padding: 16px 16px 40px; max-width: 620px; margin: 0 auto; animation: fadeIn .25s ease; }
     .screen.active { display: block; }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(6px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .auth-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 28px 24px;
-        max-width: 380px;
-        margin: 48px auto;
-        display: flex; flex-direction: column; gap: 12px;
-        box-shadow: var(--shadow-lg);
-    }
-    .auth-card h2 {
-        color: var(--text-primary);
-        text-align: center;
-        margin-bottom: 6px;
-        font-size: 22px;
-        font-weight: 800;
-    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .auth-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px 24px; max-width: 380px; margin: 48px auto; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow-lg); }
+    .auth-card h2 { color: var(--text-primary); text-align: center; margin-bottom: 6px; font-size: 22px; font-weight: 800; }
     .auth-card h2::first-letter { color: var(--accent); }
-
-    .auth-card input {
-        padding: 13px 14px;
-        background: var(--bg-input);
-        border: 1px solid var(--border);
-        color: var(--text-primary);
-        border-radius: var(--radius-md);
-        outline: none;
-        font-size: 15px;
-        font-family: inherit;
-        transition: border-color var(--transition), background var(--transition);
-    }
+    .auth-card input { padding: 13px 14px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius-md); outline: none; font-size: 15px; font-family: inherit; transition: border-color var(--transition), background var(--transition); }
     .auth-card input:focus { border-color: var(--accent); background: var(--bg-elevated); }
     .auth-card input::placeholder { color: var(--text-muted); }
-
-    .auth-error {
-        color: var(--accent);
-        font-size: 13px;
-        text-align: center;
-        min-height: 16px;
-        word-wrap: break-word;
-    }
-
-    button {
-        background: var(--accent);
-        color: #fff;
-        border: none;
-        padding: 11px 20px;
-        border-radius: var(--radius-md);
-        cursor: pointer;
-        font-weight: 700;
-        font-size: 14px;
-        font-family: inherit;
-        transition: background var(--transition), transform var(--transition), opacity var(--transition);
-        box-shadow: var(--shadow-sm);
-    }
+    .auth-error { color: var(--accent); font-size: 13px; text-align: center; min-height: 16px; word-wrap: break-word; }
+    button { background: var(--accent); color: #fff; border: none; padding: 11px 20px; border-radius: var(--radius-md); cursor: pointer; font-weight: 700; font-size: 14px; font-family: inherit; transition: background var(--transition), transform var(--transition), opacity var(--transition); box-shadow: var(--shadow-sm); }
     button:hover:not(:disabled) { background: var(--accent-hover); }
     button:active:not(:disabled) { transform: scale(.97); }
     button:disabled { cursor: not-allowed; opacity: .55; }
-
-    .btn-secondary {
-        background: var(--bg-elevated);
-        color: var(--text-primary);
-        border: 1px solid var(--border);
-        box-shadow: none;
-    }
+    .btn-secondary { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border); box-shadow: none; }
     .btn-secondary:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border-hover); }
     .logout-btn { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
     .logout-btn:hover:not(:disabled) { background: var(--accent-soft); }
-
-    .feed-form {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 16px;
-        margin-bottom: 18px;
-        box-shadow: var(--shadow-md);
-        transition: border-color var(--transition);
-    }
+    .feed-form { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 18px; box-shadow: var(--shadow-md); transition: border-color var(--transition); }
     .feed-form:focus-within { border-color: var(--border-hover); }
-
-    textarea {
-        width: 100%;
-        min-height: 80px;
-        background: var(--bg-input);
-        color: var(--text-primary);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
-        padding: 12px 14px;
-        resize: none;
-        outline: none;
-        font-size: 15px;
-        font-family: inherit;
-        line-height: 1.5;
-        transition: border-color var(--transition), background var(--transition);
-    }
+    textarea { width: 100%; min-height: 80px; background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; resize: none; outline: none; font-size: 15px; font-family: inherit; line-height: 1.5; transition: border-color var(--transition), background var(--transition); }
     textarea:focus { border-color: var(--accent); background: var(--bg-elevated); }
     textarea::placeholder { color: var(--text-muted); }
-
-    .form-actions {
-        display: flex; justify-content: space-between; align-items: center;
-        margin-top: 12px; gap: 10px;
-    }
+    .form-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 10px; }
     .post-counter { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
     .post-counter.warn { color: #f5a623; }
     .post-counter.danger { color: var(--accent); }
-
-    .post {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        padding: 16px;
-        border-radius: var(--radius-lg);
-        margin-bottom: 14px;
-        position: relative;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        box-shadow: var(--shadow-sm);
-        transition: border-color var(--transition), box-shadow var(--transition);
-        animation: fadeIn .3s ease;
-    }
+    .post { background: var(--bg-card); border: 1px solid var(--border); padding: 16px; border-radius: var(--radius-lg); margin-bottom: 14px; position: relative; word-wrap: break-word; overflow-wrap: break-word; box-shadow: var(--shadow-sm); transition: border-color var(--transition), box-shadow var(--transition); animation: fadeIn .3s ease; }
     .post:hover { border-color: var(--border-hover); box-shadow: var(--shadow-md); }
-
     .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer; }
-    .post-avatar {
-        width: 42px; height: 42px;
-        border-radius: 50%;
-        background: var(--bg-elevated);
-        object-fit: cover; flex-shrink: 0;
-        border: 2px solid var(--border);
-    }
+    .post-avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--bg-elevated); object-fit: cover; flex-shrink: 0; border: 2px solid var(--border); }
     .author-details { display: flex; flex-direction: column; min-width: 0; }
-    .author-name {
-        color: var(--text-primary);
-        font-weight: 700; font-size: 15px;
-        display: inline-flex; align-items: center; gap: 5px;
-    }
+    .author-name { color: var(--text-primary); font-weight: 700; font-size: 15px; display: inline-flex; align-items: center; gap: 5px; }
     .author-name:hover { text-decoration: underline; }
-
-    .post-content {
-        font-size: 15px; line-height: 1.5;
-        white-space: pre-wrap; margin-bottom: 12px;
-        word-wrap: break-word; overflow-wrap: break-word;
-        color: var(--text-primary);
-    }
-
-    .post-actions {
-        display: flex; gap: 18px;
-        border-top: 1px solid var(--border);
-        padding-top: 10px; font-size: 14px;
-        flex-wrap: wrap; align-items: center;
-    }
-    .action-btn {
-        display: flex; align-items: center; gap: 6px;
-        cursor: pointer; color: var(--text-secondary);
-        transition: color var(--transition), background var(--transition);
-        user-select: none;
-        padding: 5px 10px;
-        border-radius: var(--radius-pill);
-        background: transparent;
-    }
+    .post-content { font-size: 15px; line-height: 1.5; white-space: pre-wrap; margin-bottom: 12px; word-wrap: break-word; overflow-wrap: break-word; color: var(--text-primary); }
+    .post-actions { display: flex; gap: 18px; border-top: 1px solid var(--border); padding-top: 10px; font-size: 14px; flex-wrap: wrap; align-items: center; }
+    .action-btn { display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-secondary); transition: color var(--transition), background var(--transition); user-select: none; padding: 5px 10px; border-radius: var(--radius-pill); background: transparent; }
     .action-btn:hover { color: var(--text-primary); background: var(--bg-elevated); }
     .action-btn.liked { color: var(--accent); }
     .action-btn.chat-link { color: var(--blue); }
     .action-btn.delete-btn { color: var(--accent); margin-left: auto; }
     .action-btn.delete-btn:hover { background: var(--accent-soft); }
-
-    .verified-badge {
-        display: inline-block; width: 18px; height: 18px;
-        flex-shrink: 0;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-        vertical-align: middle;
-    }
-    .verified-badge.verified-blue {
-        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='%231d9bf0' stroke='%231d9bf0' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='white'/></svg>");
-    }
-    .verified-badge.verified-white {
-        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='white' stroke='%23cccccc' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='%23111'/></svg>");
-    }
-
-    .profile-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 24px 20px;
-        margin-bottom: 16px;
-        box-shadow: var(--shadow-md);
-        animation: fadeIn .3s ease;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-
-    .avatar-wrapper {
-        position: relative;
-        display: block;
-        cursor: pointer;
-        margin: 0 auto 16px auto;
-        border-radius: 50%;
-        overflow: hidden;
-        width: 110px;
-        height: 110px;
-        flex-shrink: 0;
-    }
-    .avatar-wrapper img {
-        width: 110px; height: 110px;
-        border-radius: 50%;
-        border: 3px solid var(--accent);
-        object-fit: cover;
-        display: block;
-        transition: filter var(--transition);
-        background: var(--bg-elevated);
-    }
-    .avatar-overlay {
-        position: absolute;
-        bottom: 0; left: 0; right: 0;
-        background: rgba(0,0,0,.7);
-        color: #fff;
-        font-size: 12px;
-        font-weight: 600;
-        padding: 6px 0;
-        opacity: 0;
-        transition: opacity var(--transition);
-        text-align: center;
-    }
+    .verified-badge { display: inline-block; width: 18px; height: 18px; flex-shrink: 0; background-size: contain; background-repeat: no-repeat; background-position: center; vertical-align: middle; }
+    .verified-badge.verified-blue { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='%231d9bf0' stroke='%231d9bf0' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='white'/></svg>"); }
+    .verified-badge.verified-white { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 5.6h6.1l-3.1 5 3.1 5h-6.1L12 22l-2.6-4.4H3.3l3.1-5-3.1-5h6.1L12 2z' fill='white' stroke='%23cccccc' stroke-width='1.2' stroke-linejoin='round'/><path d='M10.9 14.9l-2.4-2.4a.85.85 0 1 1 1.2-1.2l1.8 1.8 3.4-3.4a.85.85 0 1 1 1.2 1.2l-4 4a.85.85 0 0 1-1.2 0z' fill='%23111'/></svg>"); }
+    .profile-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px 20px; margin-bottom: 16px; box-shadow: var(--shadow-md); animation: fadeIn .3s ease; display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .avatar-wrapper { position: relative; display: block; cursor: pointer; margin: 0 auto 16px auto; border-radius: 50%; overflow: hidden; width: 110px; height: 110px; flex-shrink: 0; }
+    .avatar-wrapper img { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); object-fit: cover; display: block; transition: filter var(--transition); background: var(--bg-elevated); }
+    .avatar-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,.7); color: #fff; font-size: 12px; font-weight: 600; padding: 6px 0; opacity: 0; transition: opacity var(--transition); text-align: center; }
     .avatar-wrapper:hover img { filter: brightness(.55); }
     .avatar-wrapper:hover .avatar-overlay { opacity: 1; }
-
-    .user-profile-avatar {
-        width: 110px;
-        height: 110px;
-        border-radius: 50%;
-        border: 3px solid var(--accent);
-        object-fit: cover;
-        background: var(--bg-elevated);
-        margin: 0 auto 16px auto;
-        display: block;
-    }
-
-    .user-profile-name {
-        font-size: 20px;
-        color: var(--text-primary);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 6px;
-        margin-bottom: 6px;
-        font-weight: 800;
-        text-align: center;
-        width: 100%;
-        flex-wrap: wrap;
-    }
-
-    .profile-input {
-        width: 100%;
-        padding: 11px 14px;
-        background: var(--bg-input);
-        border: 1px solid var(--border);
-        color: var(--text-primary);
-        border-radius: var(--radius-md);
-        text-align: center;
-        font-size: 16px;
-        font-weight: 700;
-        margin-bottom: 10px;
-        outline: none;
-        font-family: inherit;
-        transition: border-color var(--transition);
-    }
+    .user-profile-avatar { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); object-fit: cover; background: var(--bg-elevated); margin: 0 auto 16px auto; display: block; }
+    .user-profile-name { font-size: 20px; color: var(--text-primary); display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 800; text-align: center; width: 100%; flex-wrap: wrap; }
+    .profile-input { width: 100%; padding: 11px 14px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius-md); text-align: center; font-size: 16px; font-weight: 700; margin-bottom: 10px; outline: none; font-family: inherit; transition: border-color var(--transition); }
     .profile-input:focus { border-color: var(--accent); }
-
-    .profile-bio-input {
-        width: 100%;
-        min-height: 60px;
-        max-height: 120px;
-        padding: 11px 14px;
-        background: var(--bg-input);
-        border: 1px solid var(--border);
-        color: var(--text-primary);
-        border-radius: var(--radius-md);
-        font-size: 14px;
-        margin-bottom: 12px;
-        outline: none;
-        font-family: inherit;
-        resize: vertical;
-        transition: border-color var(--transition);
-        text-align: center;
-    }
+    .profile-bio-input { width: 100%; min-height: 60px; max-height: 120px; padding: 11px 14px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius-md); font-size: 14px; margin-bottom: 12px; outline: none; font-family: inherit; resize: vertical; transition: border-color var(--transition); text-align: center; }
     .profile-bio-input:focus { border-color: var(--accent); }
-
-    .profile-login {
-        font-size: 13px;
-        color: var(--text-muted);
-        margin-bottom: 6px;
-        text-align: center;
-        width: 100%;
-    }
+    .profile-login { font-size: 13px; color: var(--text-muted); margin-bottom: 6px; text-align: center; width: 100%; }
     .profile-login span { color: var(--text-secondary); font-weight: 600; }
-
-    .profile-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-top: 16px;
-        width: 100%;
-    }
-
-    .profile-stats {
-        display: flex;
-        justify-content: space-around;
-        gap: 12px;
-        margin: 14px 0;
-        padding: 14px 0;
-        border-top: 1px solid var(--border);
-        border-bottom: 1px solid var(--border);
-        width: 100%;
-    }
+    .profile-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; width: 100%; }
+    .profile-stats { display: flex; justify-content: space-around; gap: 12px; margin: 14px 0; padding: 14px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); width: 100%; }
     .stat-item { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
-    .stat-num {
-        font-size: 20px;
-        font-weight: 800;
-        color: var(--accent);
-        font-variant-numeric: tabular-nums;
-    }
+    .stat-num { font-size: 20px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
     .stat-label { font-size: 12px; color: var(--text-muted); }
-
-    .user-profile-bio {
-        font-size: 14px;
-        color: var(--text-secondary);
-        margin: 10px 20px;
-        line-height: 1.5;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        text-align: center;
-    }
-    .user-posts-title {
-        font-size: 15px;
-        color: var(--text-secondary);
-        margin: 18px 0 10px;
-        font-weight: 700;
-    }
-
+    .user-profile-bio { font-size: 14px; color: var(--text-secondary); margin: 10px 20px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; text-align: center; }
+    .user-posts-title { font-size: 15px; color: var(--text-secondary); margin: 18px 0 10px; font-weight: 700; }
     .people-search { margin-bottom: 16px; }
-    .people-search input {
-        width: 100%;
-        padding: 13px 16px;
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        color: var(--text-primary);
-        border-radius: var(--radius-pill);
-        outline: none;
-        font-size: 15px;
-        font-family: inherit;
-        transition: border-color var(--transition), background var(--transition);
-    }
+    .people-search input { width: 100%; padding: 13px 16px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); border-radius: var(--radius-pill); outline: none; font-size: 15px; font-family: inherit; transition: border-color var(--transition), background var(--transition); }
     .people-search input:focus { border-color: var(--accent); background: var(--bg-elevated); }
     .people-search input::placeholder { color: var(--text-muted); }
-
-    .person-card {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 12px 14px;
-        margin-bottom: 10px;
-        cursor: pointer;
-        transition: border-color var(--transition), background var(--transition), transform var(--transition);
-        box-shadow: var(--shadow-sm);
-    }
-    .person-card:hover {
-        border-color: var(--accent);
-        background: var(--bg-elevated);
-        transform: translateY(-1px);
-    }
-    .person-avatar {
-        width: 46px; height: 46px;
-        border-radius: 50%;
-        background: var(--bg-elevated);
-        object-fit: cover; flex-shrink: 0;
-        border: 2px solid var(--border);
-    }
+    .person-card { display: flex; align-items: center; gap: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px; margin-bottom: 10px; cursor: pointer; transition: border-color var(--transition), background var(--transition), transform var(--transition); box-shadow: var(--shadow-sm); }
+    .person-card:hover { border-color: var(--accent); background: var(--bg-elevated); transform: translateY(-1px); }
+    .person-avatar { width: 46px; height: 46px; border-radius: 50%; background: var(--bg-elevated); object-fit: cover; flex-shrink: 0; border: 2px solid var(--border); }
     .person-info { flex: 1; min-width: 0; }
-    .person-name {
-        color: var(--text-primary);
-        font-weight: 700; font-size: 15px;
-        display: inline-flex; align-items: center; gap: 4px;
-        margin-bottom: 2px;
-    }
+    .person-name { color: var(--text-primary); font-weight: 700; font-size: 15px; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 2px; }
     .person-login { font-size: 12px; color: var(--text-muted); }
-    .person-follow-btn {
-        padding: 7px 14px;
-        font-size: 12px;
-        border-radius: var(--radius-pill);
-        flex-shrink: 0;
-    }
-    .person-follow-btn.following {
-        background: var(--bg-elevated);
-        color: var(--text-primary);
-        border: 1px solid var(--border);
-    }
+    .person-follow-btn { padding: 7px 14px; font-size: 12px; border-radius: var(--radius-pill); flex-shrink: 0; }
+    .person-follow-btn.following { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border); }
     .person-follow-btn.following:hover { background: var(--bg-hover); }
-
-    .chats-list-header {
-        margin-bottom: 16px;
-    }
-    .chats-list-header h2 {
-        font-size: 22px;
-        font-weight: 800;
-        color: var(--text-primary);
-    }
-
-    .chat-list-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 12px 14px;
-        margin-bottom: 10px;
-        cursor: pointer;
-        transition: border-color var(--transition), background var(--transition), transform var(--transition);
-        box-shadow: var(--shadow-sm);
-    }
-    .chat-list-item:hover {
-        border-color: var(--accent);
-        background: var(--bg-elevated);
-        transform: translateY(-1px);
-    }
-    .chat-list-item.unread {
-        border-color: var(--accent);
-        background: var(--accent-soft);
-    }
-
-    .chat-list-avatar-wrap {
-        position: relative;
-        flex-shrink: 0;
-    }
-    .chat-list-avatar {
-        width: 52px;
-        height: 52px;
-        border-radius: 50%;
-        background: var(--bg-elevated);
-        object-fit: cover;
-        border: 2px solid var(--border);
-        display: block;
-    }
-    .chat-list-online {
-        position: absolute;
-        bottom: 2px;
-        right: 2px;
-        width: 12px;
-        height: 12px;
-        background: #2ecc71;
-        border: 2px solid var(--bg-card);
-        border-radius: 50%;
-    }
-
-    .chat-list-content {
-        flex: 1;
-        min-width: 0;
-    }
-    .chat-list-name {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        font-weight: 700;
-        font-size: 15px;
-        color: var(--text-primary);
-        margin-bottom: 3px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .chat-list-preview {
-        font-size: 13px;
-        color: var(--text-muted);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .chat-list-preview .you {
-        color: var(--text-secondary);
-        font-weight: 600;
-    }
-
-    .chat-list-meta {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 4px;
-        flex-shrink: 0;
-    }
-    .chat-list-time {
-        font-size: 11px;
-        color: var(--text-muted);
-    }
-    .chat-list-badge {
-        background: var(--accent);
-        color: #fff;
-        font-size: 11px;
-        font-weight: 700;
-        padding: 2px 7px;
-        border-radius: 10px;
-        min-width: 20px;
-        text-align: center;
-    }
-
-    .chat-room-topbar {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 12px;
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-        border-bottom: none;
-        margin-bottom: 0;
-    }
-    .chat-back-btn {
-        background: transparent;
-        color: var(--accent);
-        border: none;
-        font-size: 22px;
-        cursor: pointer;
-        padding: 4px 8px;
-        box-shadow: none;
-        font-weight: 700;
-    }
+    .chats-list-header { margin-bottom: 16px; }
+    .chats-list-header h2 { font-size: 22px; font-weight: 800; color: var(--text-primary); }
+    .chat-list-item { display: flex; align-items: center; gap: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px; margin-bottom: 10px; cursor: pointer; transition: border-color var(--transition), background var(--transition), transform var(--transition); box-shadow: var(--shadow-sm); }
+    .chat-list-item:hover { border-color: var(--accent); background: var(--bg-elevated); transform: translateY(-1px); }
+    .chat-list-item.unread { border-color: var(--accent); background: var(--accent-soft); }
+    .chat-list-avatar-wrap { position: relative; flex-shrink: 0; }
+    .chat-list-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--bg-elevated); object-fit: cover; border: 2px solid var(--border); display: block; }
+    .chat-list-online { position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background: #2ecc71; border: 2px solid var(--bg-card); border-radius: 50%; }
+    .chat-list-content { flex: 1; min-width: 0; }
+    .chat-list-name { display: flex; align-items: center; gap: 5px; font-weight: 700; font-size: 15px; color: var(--text-primary); margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-list-preview { font-size: 13px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-list-preview .you { color: var(--text-secondary); font-weight: 600; }
+    .chat-list-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+    .chat-list-time { font-size: 11px; color: var(--text-muted); }
+    .chat-list-badge { background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 10px; min-width: 20px; text-align: center; }
+    .chat-room-topbar { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-bottom: none; margin-bottom: 0; }
+    .chat-back-btn { background: transparent; color: var(--accent); border: none; font-size: 22px; cursor: pointer; padding: 4px 8px; box-shadow: none; font-weight: 700; }
     .chat-back-btn:hover:not(:disabled) { background: var(--bg-elevated); }
-    .chat-room-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: var(--bg-elevated);
-        object-fit: cover;
-        border: 2px solid var(--border);
-        flex-shrink: 0;
-        transition: transform var(--transition);
-    }
+    .chat-room-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-elevated); object-fit: cover; border: 2px solid var(--border); flex-shrink: 0; transition: transform var(--transition); }
     .chat-room-avatar:hover { transform: scale(1.08); }
-    .chat-room-name-block {
-        flex: 1;
-        min-width: 0;
-    }
-    .chat-room-name {
-        font-weight: 700;
-        font-size: 15px;
-        color: var(--text-primary);
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
+    .chat-room-name-block { flex: 1; min-width: 0; }
+    .chat-room-name { font-weight: 700; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .chat-room-name-block:hover .chat-room-name { text-decoration: underline; }
-    .chat-room-login {
-        font-size: 12px;
-        color: var(--text-muted);
-    }
-
-    .chat-layout {
-        display: flex;
-        flex-direction: column;
-        height: calc(100vh - 300px - env(safe-area-inset-bottom, 0px));
-        height: calc(100dvh - 300px - env(safe-area-inset-bottom, 0px));
-        min-height: 320px;
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-        overflow: hidden;
-        box-shadow: var(--shadow-md);
-    }
-    .chat-messages {
-        flex: 1;
-        padding: 16px;
-        overflow-y: auto;
-        display: flex; flex-direction: column; gap: 8px;
-        background: var(--bg-body);
-        -webkit-overflow-scrolling: touch;
-    }
-    .msg {
-        max-width: 75%;
-        padding: 10px 14px;
-        border-radius: 18px;
-        font-size: 15px;
-        line-height: 1.4;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        white-space: pre-wrap;
-        box-shadow: var(--shadow-sm);
-        animation: fadeIn .2s ease;
-    }
-    .msg.incoming {
-        background: var(--bg-elevated);
-        color: var(--text-primary);
-        align-self: flex-start;
-        border-bottom-left-radius: 6px;
-        border: 1px solid var(--border);
-    }
-    .msg.outgoing {
-        background: var(--accent);
-        color: #fff;
-        align-self: flex-end;
-        border-bottom-right-radius: 6px;
-    }
-    .chat-footer {
-        display: flex;
-        padding: 10px;
-        background: var(--bg-elevated);
-        border-top: 1px solid var(--border);
-        gap: 8px;
-    }
-    .chat-footer input {
-        flex: 1;
-        background: var(--bg-input);
-        border: 1px solid var(--border);
-        color: var(--text-primary);
-        padding: 11px 16px;
-        border-radius: var(--radius-pill);
-        outline: none;
-        font-family: inherit;
-        font-size: 14px;
-        transition: border-color var(--transition);
-    }
+    .chat-room-login { font-size: 12px; color: var(--text-muted); }
+    .chat-layout { display: flex; flex-direction: column; height: calc(100vh - 300px - env(safe-area-inset-bottom, 0px)); height: calc(100dvh - 300px - env(safe-area-inset-bottom, 0px)); min-height: 320px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 0 0 var(--radius-lg) var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-md); }
+    .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: var(--bg-body); -webkit-overflow-scrolling: touch; }
+    .msg { max-width: 75%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4; word-wrap: break-word; overflow-wrap: break-word; white-space: pre-wrap; box-shadow: var(--shadow-sm); animation: fadeIn .2s ease; }
+    .msg.incoming { background: var(--bg-elevated); color: var(--text-primary); align-self: flex-start; border-bottom-left-radius: 6px; border: 1px solid var(--border); }
+    .msg.outgoing { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 6px; }
+    .chat-footer { display: flex; padding: 10px; background: var(--bg-elevated); border-top: 1px solid var(--border); gap: 8px; }
+    .chat-footer input { flex: 1; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary); padding: 11px 16px; border-radius: var(--radius-pill); outline: none; font-family: inherit; font-size: 14px; transition: border-color var(--transition); }
     .chat-footer input:focus { border-color: var(--blue); }
-    .chat-footer button {
-        border-radius: 50%;
-        width: 44px;
-        height: 44px;
-        padding: 0;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 16px;
-        box-shadow: none;
-        flex-shrink: 0;
-    }
-
-    nav {
-        position: fixed;
-        bottom: 0; left: 0; right: 0;
-        background: var(--bg-header);
-        border-top: 1px solid var(--border);
-        display: flex;
-        justify-content: space-around;
-        padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
-        z-index: 100;
-        backdrop-filter: saturate(180%) blur(12px);
-        -webkit-backdrop-filter: saturate(180%) blur(12px);
-        transition: background var(--transition), border-color var(--transition);
-    }
-    .nav-item {
-        color: var(--text-muted);
-        text-decoration: none;
-        font-size: 11px;
-        display: flex; flex-direction: column; align-items: center;
-        gap: 3px;
-        cursor: pointer;
-        width: 25%;
-        text-align: center;
-        user-select: none;
-        padding: 6px 0;
-        border-radius: var(--radius-md);
-        transition: color var(--transition), background var(--transition);
-        font-weight: 600;
-        position: relative;
-    }
+    .chat-footer button { border-radius: 50%; width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: none; flex-shrink: 0; }
+    nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-header); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px)); z-index: 100; backdrop-filter: saturate(180%) blur(12px); -webkit-backdrop-filter: saturate(180%) blur(12px); transition: background var(--transition), border-color var(--transition); }
+    .nav-item { color: var(--text-muted); text-decoration: none; font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; width: 25%; text-align: center; user-select: none; padding: 6px 0; border-radius: var(--radius-md); transition: color var(--transition), background var(--transition); font-weight: 600; position: relative; }
     .nav-item:hover { color: var(--text-secondary); }
     .nav-item.active { color: var(--accent); }
     .nav-icon { font-size: 20px; line-height: 1; }
-
-    .nav-badge {
-        position: absolute;
-        top: 0;
-        right: calc(50% - 20px);
-        background: var(--accent);
-        color: #fff;
-        font-size: 10px;
-        font-weight: 700;
-        padding: 1px 5px;
-        border-radius: 8px;
-        min-width: 16px;
-        text-align: center;
-        line-height: 14px;
-    }
-
-    #postsContainer,
-    #peopleContainer,
-    #userPostsContainer,
-    #myPostsContainer,
-    #chatsList {
-        padding-bottom: 40px;
-    }
-
+    .nav-badge { position: absolute; top: 0; right: calc(50% - 20px); background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 8px; min-width: 16px; text-align: center; line-height: 14px; }
+    #postsContainer, #peopleContainer, #userPostsContainer, #myPostsContainer, #chatsList { padding-bottom: 40px; }
     @media (max-width: 480px) {
-        .screen { padding: 12px 12px 40px; }
-        .logo { font-size: 20px; }
-        .auth-card { padding: 24px 18px; margin: 30px auto; }
-        .profile-stats { gap: 8px; }
-        .msg { max-width: 85%; }
-        body { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
-        .chat-layout {
-            height: calc(100vh - 320px - env(safe-area-inset-bottom, 0px));
-            height: calc(100dvh - 320px - env(safe-area-inset-bottom, 0px));
-        }
+        .screen { padding: 12px 12px 40px; } .logo { font-size: 20px; } .auth-card { padding: 24px 18px; margin: 30px auto; }
+        .profile-stats { gap: 8px; } .msg { max-width: 85%; } body { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
+        .chat-layout { height: calc(100vh - 320px - env(safe-area-inset-bottom, 0px)); height: calc(100dvh - 320px - env(safe-area-inset-bottom, 0px)); }
     }
 </style>
 
 <script>
-    function applyTheme(theme) {
-        if (theme === 'light') {
-            document.body.classList.add('light');
-            const btn = document.getElementById('themeToggle');
-            if (btn) btn.textContent = '☀️';
-        } else {
-            document.body.classList.remove('light');
-            const btn = document.getElementById('themeToggle');
-            if (btn) btn.textContent = '🌙';
-        }
-    }
-    function toggleTheme() {
-        const current = document.body.classList.contains('light') ? 'light' : 'dark';
-        const next = current === 'light' ? 'dark' : 'light';
-        applyTheme(next);
-        localStorage.setItem('itp_theme', next);
-    }
-    (function initTheme() {
-        const saved = localStorage.getItem('itp_theme') || 'dark';
-        applyTheme(saved);
-    })();
+    // ==================== SUPABASE INIT ====================
+    const SUPABASE_URL = 'https://bskhcsozxxiohffdzism.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_2BR0VPbgytwyeGK7QF5Z2w_98eCDy1B';
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const BASE_URL  = "https://6ac8473b75a4ce3fe7228a08.mockapi.io/api/v1/";
-    const API_URL   = BASE_URL + "posts";
-    const USERS_URL = BASE_URL + "Users";
+    // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
+    const MAX_POST_LEN = 2000;
+    const MAX_CHAT_LEN = 1000;
+    const MAX_NAME_LEN = 30;
+    const MAX_BIO_LEN  = 200;
 
-    const MAX_POSTS     = 80;
-    const MAX_POST_LEN  = 2000;
-    const MAX_CHAT_LEN  = 1000;
-    const MAX_NAME_LEN  = 30;
-    const MAX_BIO_LEN   = 200;
-    const CHAT_SEP      = "|||";
+    const VERIFIED_LOGINS = { "android": "blue", "webcode": "white" };
+    const VALID_VERIFIED  = ["", "blue", "white"];
 
-    const VERIFIED_LOGINS = {
-        "android": "blue",
-        "webcode": "white"
-    };
-
-    const VALID_VERIFIED = ["", "blue", "white"];
-
-    function normalizeVerified(value) {
-        const v = String(value || "").toLowerCase().trim();
-        return VALID_VERIFIED.includes(v) ? v : "";
+    function normalizeVerified(v) {
+        const s = String(v || "").toLowerCase().trim();
+        return VALID_VERIFIED.includes(s) ? s : "";
     }
 
-    let currentUser    = null;
-    let currentUserId  = null;
-    let pendingAvatar  = null;
+    let currentUser       = null;
+    let currentUserId     = null;
+    let pendingAvatar     = null;
     let activeChatPartner = null;
     let viewedUser        = null;
     let allServerPosts    = [];
     let allUsers          = [];
-    let lastPostsHash     = '';
-    let pollInterval      = null;
     let isEditingProfile  = false;
     let readChats         = {};
+    let realtimeChannel   = null;
 
+    // ==================== УТИЛИТЫ ====================
     function loadReadChats() {
-        try {
-            readChats = JSON.parse(localStorage.getItem('itp_read_chats') || "{}");
-        } catch (e) { readChats = {}; }
+        try { readChats = JSON.parse(localStorage.getItem('itp_read_chats') || "{}"); }
+        catch { readChats = {}; }
     }
     function saveReadChats() {
         localStorage.setItem('itp_read_chats', JSON.stringify(readChats));
     }
-
     function escapeHtml(str) {
-        if (str === null || str === undefined) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+        if (str == null) return '';
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
-
     function verifiedBadgeFromType(type) {
         const t = normalizeVerified(type);
-        if (t === "blue")  return '<span class="verified-badge verified-blue"  title="Синяя галочка"></span>';
-        if (t === "white") return '<span class="verified-badge verified-white" title="Белая галочка"></span>';
+        if (t === "blue")  return '<span class="verified-badge verified-blue"></span>';
+        if (t === "white") return '<span class="verified-badge verified-white"></span>';
         return "";
     }
-
     function getUserAvatarUrl(seed, customAvatar) {
-        if (customAvatar && String(customAvatar).startsWith("data:image")) return customAvatar;
-        return `https://robohash.org/${encodeURIComponent(seed || 'default')}?set=set4`;
+        if (customAvatar && customAvatar.startsWith("data:image")) return customAvatar;
+        return `https://robohash.org/${encodeURIComponent(seed || 'default')}?set=4`;
     }
-
     function lockBtn(btn, text) {
         if (!btn) return () => {};
         const old = btn.innerText;
@@ -1157,69 +413,53 @@
         if (text) btn.innerText = text;
         return () => { btn.disabled = false; btn.innerText = old; };
     }
-
-    function parseFollowing(user) {
-        if (!user || !user.following) return [];
-        try {
-            const arr = JSON.parse(user.following);
-            return Array.isArray(arr) ? arr.map(String) : [];
-        } catch (e) { return []; }
-    }
-
     function formatDate(iso) {
         if (!iso) return "—";
         const d = new Date(iso);
         if (isNaN(d.getTime())) return "—";
-        return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
+        return d.toLocaleDateString('ru-RU', { day:'2-digit', month:'long', year:'numeric' });
     }
-
     function formatChatTime(ts) {
         if (!ts) return "";
-        const d = new Date(ts * 1000);
+        const d = new Date(ts);
         const now = new Date();
-        const isToday = d.toDateString() === now.toDateString();
-        const hh = String(d.getHours()).padStart(2, '0');
-        const mm = String(d.getMinutes()).padStart(2, '0');
-        if (isToday) return `${hh}:${mm}`;
-        const yesterday = new Date(now);
-        yesterday.setDate(now.getDate() - 1);
-        if (d.toDateString() === yesterday.toDateString()) return 'вчера';
-        const dd = String(d.getDate()).padStart(2, '0');
-        const mo = String(d.getMonth() + 1).padStart(2, '0');
-        return `${dd}.${mo}`;
+        if (d.toDateString() === now.toDateString())
+            return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        const y = new Date(now); y.setDate(now.getDate()-1);
+        if (d.toDateString() === y.toDateString()) return 'вчера';
+        return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`;
+    }
+    function isBadFaker(s) { return !s || String(s).startsWith("Invalid faker method"); }
+
+    // ==================== АВТОРИЗАЦИЯ ====================
+    function loginToEmail(login) {
+        return `${login.toLowerCase()}@example.com`;
+    }
+    function emailToLogin(email) {
+        return (email || "").replace(/@example\.com$/, '');
     }
 
-    function isBadFaker(str) {
-        return !str || String(str).startsWith("Invalid faker method");
-    }
-
-    /* ==================== АВТОРИЗАЦИЯ ==================== */
     async function doLogin() {
-        const login    = document.getElementById('authLogin').value.trim().toLowerCase();
+        const login = document.getElementById('authLogin').value.trim().toLowerCase();
         const password = document.getElementById('authPassword').value;
-        const errEl    = document.getElementById('authError');
-        const btn      = document.getElementById('loginBtn');
+        const errEl = document.getElementById('authError');
+        const btn   = document.getElementById('loginBtn');
         errEl.textContent = "";
 
-        if (!login || !password) { errEl.textContent = "Заполните все поля"; return; }
+        if (!login || !password) return (errEl.textContent = "Заполните все поля");
 
         const unlock = lockBtn(btn, "Входим...");
         try {
-            const res  = await fetch(`${USERS_URL}?login=${encodeURIComponent(login)}`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const list = await res.json();
+            const { error } = await db.auth.signInWithPassword({
+                email: loginToEmail(login),
+                password
+            });
+            if (error) throw new Error("Неверный логин или пароль");
 
-            const user = Array.isArray(list) ? list.find(u => u.login === login) : null;
-            if (!user || user.password !== password) {
-                errEl.textContent = "Неверный логин или пароль";
-                return;
-            }
-
-            saveSession(user);
+            await refreshCurrentUser();
             await enterApp();
         } catch (e) {
-            errEl.textContent = "Ошибка сети: " + e.message;
-            console.error(e);
+            errEl.textContent = e.message;
         } finally {
             unlock();
         }
@@ -1234,118 +474,110 @@
         const btn    = document.getElementById('regBtn');
         errEl.textContent = "";
 
-        if (!/^[a-z0-9_]{3,20}$/.test(login)) { errEl.textContent = "Логин: 3-20 символов, латиница/цифры/_"; return; }
-        if (name.length < 2 || name.length > MAX_NAME_LEN) { errEl.textContent = "Имя: от 2 до 30 символов"; return; }
-        if (pass1.length < 4) { errEl.textContent = "Пароль минимум 4 символа"; return; }
-        if (pass1 !== pass2)  { errEl.textContent = "Пароли не совпадают"; return; }
+        if (!/^[a-z0-9_]{3,20}$/.test(login)) return (errEl.textContent = "Логин: 3-20 символов, латиница/цифры/_");
+        if (name.length < 2 || name.length > MAX_NAME_LEN) return (errEl.textContent = "Имя: от 2 до 30 символов");
+        if (pass1.length < 6) return (errEl.textContent = "Пароль минимум 6 символов");
+        if (pass1 !== pass2) return (errEl.textContent = "Пароли не совпадают");
 
         const unlock = lockBtn(btn, "Создаём...");
         try {
-            const check = await fetch(`${USERS_URL}?login=${encodeURIComponent(login)}`);
-            if (check.ok) {
-                const found = await check.json();
-                if (Array.isArray(found) && found.length > 0) { errEl.textContent = "Такой логин уже занят"; return; }
-            }
+            const { data: existing } = await db.from('profiles').select('id').eq('login', login).maybeSingle();
+            if (existing) { errEl.textContent = "Такой логин уже занят"; return; }
 
-            const verified = normalizeVerified(VERIFIED_LOGINS[login] || "");
+            const isVerified = normalizeVerified(VERIFIED_LOGINS[login] || "");
 
-            const newUser = {
-                login: login,
+            const { data: signUpData, error } = await db.auth.signUp({
+                email: loginToEmail(login),
                 password: pass1,
-                name: name,
-                avatarSeed: login,
-                customAvatar: "",
-                isVerified: verified,
-                bio: "",
-                createdAt: new Date().toISOString(),
-                following: "[]"
-            };
-
-            const res = await fetch(USERS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newUser)
+                options: {
+                    data: { login, name, avatar_seed: login, is_verified: isVerified }
+                }
             });
+            if (error) throw error;
 
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const created = await res.json();
+            const { error: loginErr } = await db.auth.signInWithPassword({
+                email: loginToEmail(login),
+                password: pass1
+            });
+            if (loginErr) throw loginErr;
 
-            saveSession(created);
+            await refreshCurrentUser();
             await enterApp();
         } catch (e) {
             errEl.textContent = "Ошибка: " + e.message;
-            console.error("Register error:", e);
+            console.error(e);
         } finally {
             unlock();
         }
     }
 
-    function saveSession(user) {
-        let safeName = user.name;
-        if (isBadFaker(safeName)) safeName = user.login || "Пользователь";
+    async function refreshCurrentUser() {
+        const { data: { user } } = await db.auth.getUser();
+        if (!user) { currentUser = null; return null; }
 
-        currentUser = {
-            id: user.id,
-            login: user.login,
-            name: safeName,
-            avatarSeed: user.avatarSeed || user.login,
-            customAvatar: (user.customAvatar && String(user.customAvatar).startsWith("data:image"))
-                ? user.customAvatar : null,
-            isVerified: normalizeVerified(user.isVerified),
-            bio: user.bio || "",
-            createdAt: user.createdAt || "",
-            following: user.following || "[]"
-        };
-        currentUserId = user.id;
-        localStorage.setItem('itp_session', JSON.stringify(currentUser));
-    }
+        const { data: profile, error } = await db
+            .from('profiles').select('*').eq('id', user.id).single();
 
-    function restoreSession() {
-        const raw = localStorage.getItem('itp_session');
-        if (!raw) return false;
-        try {
-            const parsed = JSON.parse(raw);
-            if (parsed && parsed.id && parsed.name) {
-                parsed.isVerified = normalizeVerified(parsed.isVerified);
-                currentUser   = parsed;
-                currentUserId = parsed.id;
-                return true;
+        if (error || !profile) {
+            const login = emailToLogin(user.email);
+            const { data: newProfile } = await db.from('profiles').upsert({
+                id: user.id, login, name: login, avatar_seed: login, is_verified: ''
+            }).select().single();
+            
+            if (newProfile) {
+                currentUser = mapProfile(newProfile);
+                currentUserId = currentUser.id;
+                return currentUser;
             }
-        } catch (e) {}
-        return false;
+            currentUser = null;
+            return null;
+        }
+        currentUser = mapProfile(profile);
+        currentUserId = currentUser.id;
+        localStorage.setItem('itp_session', JSON.stringify(currentUser));
+        return currentUser;
     }
 
-    function clearLocalData() {
-        if (!confirm("Удалить сохранённую сессию и локальные данные?")) return;
-        localStorage.removeItem('itp_session');
-        localStorage.removeItem('itp_liked');
-        localStorage.removeItem('itp_theme');
-        localStorage.removeItem('itp_read_chats');
-        location.reload();
+    function mapProfile(p) {
+        return {
+            id: p.id,
+            login: p.login,
+            name: p.name || p.login,
+            avatarSeed: p.avatar_seed || p.login,
+            customAvatar: (p.custom_avatar && p.custom_avatar.startsWith('data:image'))
+                ? p.custom_avatar : null,
+            isVerified: normalizeVerified(p.is_verified),
+            bio: p.bio || "",
+            createdAt: p.created_at || "",
+            following: Array.isArray(p.following) ? p.following : []
+        };
     }
 
-    function logout() {
+    async function restoreSession() {
+        const { data: { session } } = await db.auth.getSession();
+        if (!session) return false;
+        const u = await refreshCurrentUser();
+        return !!u;
+    }
+
+    async function logout() {
         if (!confirm("Выйти из аккаунта?")) return;
+        if (realtimeChannel) db.removeChannel(realtimeChannel);
+        await db.auth.signOut();
         localStorage.removeItem('itp_session');
-        currentUser = null; currentUserId = null; pendingAvatar = null;
+        currentUser = null; currentUserId = null;
         activeChatPartner = null; viewedUser = null;
-        allServerPosts = []; allUsers = []; lastPostsHash = '';
-        isEditingProfile = false;
-        readChats = {};
-        if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
-
-        document.getElementById('authLogin').value = "";
-        document.getElementById('authPassword').value = "";
-        document.getElementById('authError').textContent = "";
-        document.getElementById('regError').textContent = "";
+        allServerPosts = []; allUsers = [];
 
         document.getElementById('headerUserBadge').style.display = 'none';
         document.getElementById('mainNav').style.display = 'none';
-        document.getElementById('postText').value = "";
-        updatePostCounter();
-        document.getElementById('postsContainer').innerHTML = "Загрузка ИТП...";
-
         switchScreen('auth');
+    }
+
+    function clearLocalData() {
+        if (!confirm("Удалить локальные данные?")) return;
+        localStorage.clear();
+        location.reload();
     }
 
     async function enterApp() {
@@ -1355,38 +587,178 @@
         document.getElementById('mainNav').style.display = 'flex';
         switchScreen('feed');
         await loadUsers();
-        loadData(true);
-        startPolling();
+        await loadData(true);
+        setupRealtime();
     }
 
-    /* ==================== ЗАГРУЗКА ПОЛЬЗОВАТЕЛЕЙ ==================== */
+    // ==================== ЗАГРУЗКА ДАННЫХ ====================
     async function loadUsers() {
         try {
-            const res = await fetch(USERS_URL);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            if (!Array.isArray(data)) throw new Error('Bad users data');
-            data.forEach(u => { u.isVerified = normalizeVerified(u.isVerified); });
-            allUsers = data;
+            const { data, error } = await db.from('profiles').select('*');
+            if (error) throw error;
+            allUsers = data.map(mapProfile);
             renderPeopleList();
-            if (document.getElementById('chatsListView').style.display !== 'none') {
-                renderChatsList();
-            }
+            if (document.getElementById('chatsListView').style.display !== 'none') renderChatsList();
         } catch (e) {
-            console.error("loadUsers error:", e);
-            document.getElementById('peopleContainer').innerHTML =
-                "<p style='text-align:center;color:#ff3333;'>Не удалось загрузить список пользователей.</p>";
+            console.error("loadUsers:", e);
         }
     }
 
-    /* ==================== СВОЙ ПРОФИЛЬ ==================== */
+    async function loadData(force = false) {
+        if (!currentUser) return;
+        try {
+            const { data, error } = await db.from('posts').select('*').order('id', { ascending: false }).limit(300);
+            if (error) throw error;
+            allServerPosts = data;
+            renderFeed();
+            renderMyPosts();
+            if (activeChatPartner) renderDirectMessages();
+            if (document.getElementById('chatsListView').style.display !== 'none') renderChatsList();
+            updateMyStats();
+            if (viewedUser) renderUserProfile(viewedUser);
+            updateChatsNavBadge();
+        } catch (e) {
+            console.error("loadData:", e);
+        }
+    }
+
+    // ==================== REALTIME (СЛУШАЕМ СЕРВЕР) ====================
+    function setupRealtime() {
+        if (realtimeChannel) db.removeChannel(realtimeChannel);
+
+        console.log("Подключаемся к Realtime...");
+
+        realtimeChannel = db.channel('custom-all-channel')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'posts' },
+                (payload) => {
+                    console.log("Пришло обновление с сервера:", payload);
+                    loadData(true);
+                }
+            )
+            .subscribe((status) => {
+                console.log("Статус Realtime подключения:", status);
+            });
+    }
+
+    // ==================== ЛЕНТА ====================
+    function renderFeed() {
+        const c = document.getElementById('postsContainer');
+        c.innerHTML = "";
+        const publicPosts = allServerPosts.filter(p => !p.is_chat);
+        if (!publicPosts.length) {
+            c.innerHTML = "<p style='text-align:center;color:#888;margin-top:20px;'>Постов пока нет.</p>";
+            return;
+        }
+        const liked = JSON.parse(localStorage.getItem('itp_liked') || "[]");
+        const frag = document.createDocumentFragment();
+
+        publicPosts.forEach(p => {
+            const author = allUsers.find(u => String(u.id) === String(p.author_id));
+            if (!author) return;
+            const avatarSrc = getUserAvatarUrl(author.avatarSeed, author.customAvatar);
+            const badge = verifiedBadgeFromType(author.isVerified);
+            const isMine = String(p.author_id) === String(currentUserId);
+            const isLiked = liked.includes(String(p.id));
+
+            const el = document.createElement('div');
+            el.className = 'post';
+            el.innerHTML = `
+                <div class="post-header" onclick="openUserProfile('${escapeHtml(author.name)}', '${author.id}')">
+                    <img class="post-avatar" src="${escapeHtml(avatarSrc)}">
+                    <div class="author-details"><span class="author-name">${escapeHtml(author.name)}${badge}</span></div>
+                </div>
+                <div class="post-content">${escapeHtml(p.content) || "Пустое сообщение"}</div>
+                <div class="post-actions">
+                    <div class="action-btn ${isLiked?'liked':''}" id="like-btn-${p.id}" onclick="toggleLike(${p.id}, ${p.likes||0})">
+                        ❤️ <span id="like-count-${p.id}">${p.likes||0}</span>
+                    </div>
+                    ${!isMine ? `<div class="action-btn chat-link" onclick="event.stopPropagation(); openChatWithId('${author.id}')">💬 Личное сообщение</div>` : ''}
+                    ${isMine  ? `<div class="action-btn delete-btn" onclick="event.stopPropagation(); deletePost(${p.id})">🗑️ Удалить</div>` : ''}
+                </div>`;
+            frag.appendChild(el);
+        });
+        c.appendChild(frag);
+    }
+
+    async function addPost() {
+        if (!currentUser) return;
+        const btn = document.getElementById('postSubmitBtn');
+        const txtEl = document.getElementById('postText');
+        const txt = txtEl.value.trim();
+        if (!txt) return;
+        if (txt.length > MAX_POST_LEN) return alert("Слишком длинный пост");
+
+        const unlock = lockBtn(btn, "Отправка...");
+        try {
+            const { error } = await db.from('posts').insert({
+                author_id: currentUserId, content: txt, likes: 0, is_chat: false
+            });
+            if (error) throw error;
+            txtEl.value = ""; updatePostCounter();
+            // Если Realtime выключен на сервере, принудительно обновляем:
+            await loadData(true);
+        } catch (e) {
+            alert("Не удалось отправить: " + e.message);
+        } finally { unlock(); }
+    }
+
+    async function deletePost(id) {
+        if (!confirm("Удалить этот пост?")) return;
+        try {
+            const { error } = await db.from('posts').delete().eq('id', id);
+            if (error) throw error;
+            await loadData(true);
+        } catch (e) { alert("Не удалось удалить: " + e.message); }
+    }
+
+    const likeLocks = new Set();
+    async function toggleLike(postId, currentLikes) {
+        const idStr = String(postId);
+        if (likeLocks.has(idStr)) return;
+        likeLocks.add(idStr);
+
+        let liked = JSON.parse(localStorage.getItem('itp_liked') || "[]");
+        const hasLiked = liked.includes(idStr);
+        const newCount = hasLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
+
+        if (hasLiked) liked = liked.filter(x => x !== idStr);
+        else liked.push(idStr);
+        localStorage.setItem('itp_liked', JSON.stringify(liked));
+
+        const el = document.getElementById(`like-count-${postId}`);
+        const parent = document.getElementById(`like-btn-${postId}`);
+        if (el) el.innerText = newCount;
+        if (parent) parent.classList.toggle('liked', !hasLiked);
+
+        try {
+            const { error } = await db.from('posts').update({ likes: newCount }).eq('id', postId);
+            if (error) throw error;
+        } catch (e) {
+            if (hasLiked) liked.push(idStr);
+            else liked = liked.filter(x => x !== idStr);
+            localStorage.setItem('itp_liked', JSON.stringify(liked));
+            if (el) el.innerText = currentLikes;
+            if (parent) parent.classList.toggle('liked', hasLiked);
+        } finally { likeLocks.delete(idStr); }
+    }
+
+    function updatePostCounter() {
+        const txt = document.getElementById('postText').value;
+        const c = document.getElementById('postCounter');
+        c.innerText = `${txt.length} / ${MAX_POST_LEN}`;
+        c.classList.remove('warn','danger');
+        if (txt.length > MAX_POST_LEN * 0.9) c.classList.add('danger');
+        else if (txt.length > MAX_POST_LEN * 0.7) c.classList.add('warn');
+    }
+
+    // ==================== ПРОФИЛЬ ====================
     function updateProfileUI() {
         if (!currentUser) return;
         const avatarUrl = getUserAvatarUrl(currentUser.avatarSeed, currentUser.customAvatar);
-        const headerNameEl = document.getElementById('headerUserName');
-        headerNameEl.innerHTML = `${escapeHtml(currentUser.name)}${verifiedBadgeFromType(currentUser.isVerified)}`;
-        headerNameEl.style.cssText = "display:inline-flex;align-items:center;gap:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
-
+        const hn = document.getElementById('headerUserName');
+        hn.innerHTML = `${escapeHtml(currentUser.name)}${verifiedBadgeFromType(currentUser.isVerified)}`;
         document.getElementById('headerUserAvatar').src = avatarUrl;
         document.getElementById('profileAvatarImg').src = avatarUrl;
 
@@ -1395,124 +767,82 @@
         if (document.activeElement !== nameInput) nameInput.value = currentUser.name;
         if (document.activeElement !== bioInput)  bioInput.value  = currentUser.bio || "";
 
-        document.getElementById('profileLoginValue').textContent = currentUser.login || "—";
+        document.getElementById('profileLoginValue').textContent = currentUser.login;
         document.getElementById('profileCreatedAt').textContent = formatDate(currentUser.createdAt);
-
         updateMyStats();
     }
 
     function updateMyStats() {
         if (!currentUser) return;
-        let postCount = 0, likeCount = 0;
-
-        allServerPosts.forEach(p => {
-            if (!p || !p.name) return;
-            const parts = p.name.split(CHAT_SEP);
-            const body = parts[1] || "";
-            if (body.startsWith("[CHAT:")) return;
-            if (String(parts[5]) !== String(currentUserId)) return;
-            postCount++;
-            const n = Number(p.avatar);
-            if (!isNaN(n) && n > 0) likeCount += n;
-        });
-
-        document.getElementById('myPostsCount').textContent = postCount;
-        document.getElementById('myLikesCount').textContent = likeCount;
-        document.getElementById('myFollowingCount').textContent = parseFollowing(currentUser).length;
+        const myPublic = allServerPosts.filter(p => !p.is_chat && String(p.author_id) === String(currentUserId));
+        const likes = myPublic.reduce((s,p) => s + (p.likes||0), 0);
+        document.getElementById('myPostsCount').textContent = myPublic.length;
+        document.getElementById('myLikesCount').textContent = likes;
+        document.getElementById('myFollowingCount').textContent = (currentUser.following || []).length;
     }
 
     function renderMyPosts() {
-        const container = document.getElementById('myPostsContainer');
-        if (!container || !currentUser) return;
-
-        const myPosts = allServerPosts.filter(p => {
-            if (!p || !p.name) return false;
-            const parts = p.name.split(CHAT_SEP);
-            const body = parts[1] || "";
-            if (body.startsWith("[CHAT:")) return false;
-            return String(parts[5]) === String(currentUserId);
-        });
-        myPosts.sort((a, b) => Number(b.id) - Number(a.id));
-
-        container.innerHTML = "";
-
-        if (myPosts.length === 0) {
-            container.innerHTML = "<p style='text-align:center;color:#888;margin-top:20px;'>У вас пока нет постов.</p>";
+        const c = document.getElementById('myPostsContainer');
+        if (!c || !currentUser) return;
+        const myPosts = allServerPosts.filter(p => !p.is_chat && String(p.author_id) === String(currentUserId));
+        if (!myPosts.length) {
+            c.innerHTML = "<p style='text-align:center;color:#888;margin-top:20px;'>У вас пока нет постов.</p>";
             return;
         }
-
-        const localLikes = JSON.parse(localStorage.getItem('itp_liked') || "[]");
-        const frag = document.createDocumentFragment();
+        const liked = JSON.parse(localStorage.getItem('itp_liked') || "[]");
         const avatarSrc = getUserAvatarUrl(currentUser.avatarSeed, currentUser.customAvatar);
         const badge = verifiedBadgeFromType(currentUser.isVerified);
+        const frag = document.createDocumentFragment();
 
         myPosts.forEach(p => {
-            const info = unpackPost(p);
-            let likesCount = Number(p.avatar);
-            if (!likesCount || isNaN(likesCount)) likesCount = 0;
-            const isLiked = localLikes.includes(String(p.id));
-
-            const postEl = document.createElement('div');
-            postEl.className = 'post';
-            postEl.innerHTML = `
+            const isLiked = liked.includes(String(p.id));
+            const el = document.createElement('div');
+            el.className = 'post';
+            el.innerHTML = `
                 <div class="post-header">
-                    <img class="post-avatar" src="${escapeHtml(avatarSrc)}" alt=""
-                         onerror="this.src='https://robohash.org/default?set=set4'">
-                    <div class="author-details">
-                        <span class="author-name">${escapeHtml(currentUser.name)}${badge}</span>
-                    </div>
+                    <img class="post-avatar" src="${escapeHtml(avatarSrc)}">
+                    <div class="author-details"><span class="author-name">${escapeHtml(currentUser.name)}${badge}</span></div>
                 </div>
-                <div class="post-content">${escapeHtml(info.content) || "Пустое сообщение"}</div>
+                <div class="post-content">${escapeHtml(p.content) || "Пустое сообщение"}</div>
                 <div class="post-actions">
-                    <div class="action-btn ${isLiked ? 'liked' : ''}"
-                         id="like-btn-${escapeHtml(p.id)}"
-                         onclick="toggleLike('${escapeHtml(p.id)}', ${likesCount})">
-                        ❤️ <span id="like-count-${escapeHtml(p.id)}">${likesCount}</span>
+                    <div class="action-btn ${isLiked?'liked':''}" id="like-btn-${p.id}" onclick="toggleLike(${p.id}, ${p.likes||0})">
+                        ❤️ <span id="like-count-${p.id}">${p.likes||0}</span>
                     </div>
-                    <div class="action-btn delete-btn" onclick="deletePost('${escapeHtml(p.id)}')">
-                        🗑️ Удалить
-                    </div>
+                    <div class="action-btn delete-btn" onclick="deletePost(${p.id})">🗑️ Удалить</div>
                 </div>`;
-            frag.appendChild(postEl);
+            frag.appendChild(el);
         });
-        container.appendChild(frag);
+        c.innerHTML = ""; c.appendChild(frag);
     }
 
     function handleAvatarUpload(event) {
-        const file = event.target.files && event.target.files[0];
+        const file = event.target.files?.[0];
         if (!file) return;
-        if (!file.type.startsWith('image/')) { alert("Пожалуйста, выберите изображение!"); event.target.value = ""; return; }
-        if (file.size > 5 * 1024 * 1024) { alert("Картинка слишком большая! Максимум 5 МБ."); event.target.value = ""; return; }
+        if (!file.type.startsWith('image/')) return alert("Выберите изображение");
+        if (file.size > 5*1024*1024) return alert("Максимум 5 МБ");
 
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = (e) => {
             const img = new Image();
-            img.onload = function() {
-                try {
-                    const canvas = document.createElement('canvas');
-                    const size = 200;
-                    canvas.width = size; canvas.height = size;
-                    const ctx = canvas.getContext('2d');
-                    const minSide = Math.min(img.width, img.height);
-                    const sx = (img.width - minSide) / 2;
-                    const sy = (img.height - minSide) / 2;
-                    ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
-                    pendingAvatar = canvas.toDataURL('image/jpeg', 0.85);
-                    document.getElementById('profileAvatarImg').src = pendingAvatar;
-                    document.getElementById('headerUserAvatar').src = pendingAvatar;
-                    alert("Аватар подготовлен. Нажмите «Сохранить профиль».");
-                } catch (err) { alert("Не удалось обработать изображение."); }
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const size = 200; canvas.width = size; canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                const m = Math.min(img.width, img.height);
+                ctx.drawImage(img, (img.width-m)/2, (img.height-m)/2, m, m, 0, 0, size, size);
+                pendingAvatar = canvas.toDataURL('image/jpeg', 0.85);
+                document.getElementById('profileAvatarImg').src = pendingAvatar;
+                document.getElementById('headerUserAvatar').src = pendingAvatar;
+                alert("Аватар подготовлен. Нажмите «Сохранить профиль».");
             };
-            img.onerror = () => alert("Не удалось открыть файл как изображение.");
             img.src = e.target.result;
         };
-        reader.onerror = () => alert("Ошибка чтения файла.");
         reader.readAsDataURL(file);
         event.target.value = "";
     }
 
     function resetAvatar() {
-        if (!confirm("Сбросить аватар на стандартный?")) return;
+        if (!confirm("Сбросить аватар?")) return;
         pendingAvatar = "";
         document.getElementById('profileAvatarImg').src = getUserAvatarUrl(currentUser.avatarSeed, null);
         document.getElementById('headerUserAvatar').src = getUserAvatarUrl(currentUser.avatarSeed, null);
@@ -1520,716 +850,169 @@
 
     async function saveProfile() {
         if (!currentUser) return;
-        const nameInput = document.getElementById('profileNameInput');
-        const bioInput  = document.getElementById('profileBioInput');
-        const newName = nameInput.value.trim();
-        const newBio  = bioInput.value.trim();
-
-        if (newName.length < 2 || newName.length > MAX_NAME_LEN) return alert("Имя от 2 до 30 символов");
-        if (newBio.length > MAX_BIO_LEN) return alert(`Био до ${MAX_BIO_LEN} символов`);
+        const name = document.getElementById('profileNameInput').value.trim();
+        const bio  = document.getElementById('profileBioInput').value.trim();
+        if (name.length < 2 || name.length > MAX_NAME_LEN) return alert("Имя от 2 до 30");
+        if (bio.length > MAX_BIO_LEN) return alert(`Био до ${MAX_BIO_LEN}`);
 
         const avatarToSave = (pendingAvatar !== null) ? pendingAvatar : (currentUser.customAvatar || "");
         const btn = document.getElementById('saveProfileBtn');
         const unlock = lockBtn(btn, "Сохраняем...");
-
         isEditingProfile = true;
 
         try {
-            const res = await fetch(`${USERS_URL}/${currentUserId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: newName,
-                    bio: newBio,
-                    customAvatar: avatarToSave,
-                    avatarSeed: currentUser.avatarSeed || currentUser.login
-                })
-            });
+            const { error } = await db.from('profiles').update({
+                name, bio, custom_avatar: avatarToSave || null
+            }).eq('id', currentUserId);
+            if (error) throw error;
 
-            if (res.status === 404) {
-                alert("Аккаунт не найден на сервере (404). Возможно, база была очищена. Войдите заново.");
-                logout();
-                return;
-            }
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-            const updated = await res.json();
-
-            currentUser.name = updated.name || newName;
-            currentUser.bio = updated.bio || newBio;
-            currentUser.customAvatar = avatarToSave && avatarToSave.startsWith("data:image") ? avatarToSave : null;
+            currentUser.name = name;
+            currentUser.bio  = bio;
+            currentUser.customAvatar = avatarToSave && avatarToSave.startsWith('data:image') ? avatarToSave : null;
             pendingAvatar = null;
-
             localStorage.setItem('itp_session', JSON.stringify(currentUser));
-            updateProfileUI();
-            renderMyPosts();
 
-            const idx = allUsers.findIndex(u => String(u.id) === String(currentUserId));
-            if (idx !== -1) {
-                allUsers[idx].name = currentUser.name;
-                allUsers[idx].bio = currentUser.bio;
-            }
-
+            updateProfileUI(); renderMyPosts();
             alert("Профиль сохранён!");
-        } catch (e) {
-            alert("Не удалось сохранить профиль: " + e.message);
-            console.error(e);
-        } finally {
-            isEditingProfile = false;
-            unlock();
-        }
+        } catch (e) { alert("Ошибка: " + e.message); }
+        finally { isEditingProfile = false; unlock(); }
     }
 
-    /* ==================== НАВИГАЦИЯ ==================== */
-    function switchScreen(screenName) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
-        const screenEl = document.getElementById(`screen-${screenName}`);
-        const navEl    = document.getElementById(`nav-${screenName}`);
-        if (screenEl) screenEl.classList.add('active');
-        if (navEl)    navEl.classList.add('active');
-
-        if (screenName === 'profile') { updateMyStats(); renderMyPosts(); }
-        if (screenName === 'people') renderPeopleList();
-        if (screenName === 'chats') {
-            closeChatRoom();
-        }
-
-        window.scrollTo({ top: 0, behavior: 'instant' });
-    }
-
-    /* ==================== ЗАГРУЗКА ПОСТОВ ==================== */
-    async function loadData(force = false) {
-        if (!currentUser) return;
-        try {
-            const response = await fetch(API_URL);
-            if (!response.ok) throw new Error('Network error');
-            const data = await response.json();
-            if (!Array.isArray(data)) throw new Error('Bad data');
-
-            const hash = data.map(p => `${p.id}:${p.avatar}`).sort().join('|');
-            const changed = hash !== lastPostsHash || force;
-
-            allServerPosts = data;
-            lastPostsHash = hash;
-
-            if (changed) {
-                renderFeed();
-                renderMyPosts();
-                if (activeChatPartner) renderDirectMessages();
-                if (document.getElementById('chatsListView').style.display !== 'none') {
-                    renderChatsList();
-                }
-                updateMyStats();
-                if (viewedUser) renderUserProfile(viewedUser);
-                updateChatsNavBadge();
-            }
-        } catch (e) {
-            if (force) {
-                document.getElementById('postsContainer').innerHTML =
-                    "<p style='text-align:center;color:#ff3333;'>Ошибка синхронизации с базой ИТП.</p>";
-            }
-            console.error("loadData error:", e);
-        }
-    }
-
-    function unpackPost(p) {
-        const parts = (p.name || "").split(CHAT_SEP);
-        return {
-            author:       parts[0] || "Аноним",
-            content:      parts[1] || "",
-            seed:         parts[2] || "default",
-            customAvatar: parts[3] || "",
-            isVerified:   normalizeVerified(parts[4] || ""),
-            authorId:     parts[5] || ""
-        };
-    }
-
-    /* ==================== ЛЕНТА ==================== */
-    function renderFeed() {
-        const container = document.getElementById('postsContainer');
-        container.innerHTML = "";
-
-        const publicPosts = allServerPosts.filter(p => {
-            if (!p || !p.name) return false;
-            const parts = p.name.split(CHAT_SEP);
-            const body = parts[1] || "";
-            return !body.startsWith("[CHAT:");
-        });
-
-        if (publicPosts.length === 0) {
-            container.innerHTML = "<p style='text-align:center;color:#888;margin-top:20px;'>В ИТП пока нет публикаций.</p>";
-            return;
-        }
-
-        publicPosts.sort((a, b) => Number(b.id) - Number(a.id));
-
-        const localLikes = JSON.parse(localStorage.getItem('itp_liked') || "[]");
-        const frag = document.createDocumentFragment();
-
-        publicPosts.forEach(p => {
-            const info = unpackPost(p);
-            let likesCount = Number(p.avatar);
-            if (!likesCount || isNaN(likesCount) || String(p.avatar).includes("http")) likesCount = 0;
-
-            let avatarSrc;
-            if (info.authorId && String(info.authorId) === String(currentUserId)) {
-                avatarSrc = getUserAvatarUrl(currentUser.avatarSeed, currentUser.customAvatar);
-            } else {
-                avatarSrc = info.customAvatar && info.customAvatar.startsWith("data:image")
-                    ? info.customAvatar : getUserAvatarUrl(info.seed);
-            }
-
-            const badge   = verifiedBadgeFromType(info.isVerified);
-            const isMine  = info.authorId && String(info.authorId) === String(currentUserId);
-            const isLiked = localLikes.includes(String(p.id));
-
-            const postEl = document.createElement('div');
-            postEl.className = 'post';
-
-            const headerHtml = `
-                <div class="post-header"
-                     onclick="openUserProfile(${JSON.stringify(info.author).replace(/"/g, '&quot;')}, ${JSON.stringify(info.authorId).replace(/"/g, '&quot;')}, ${JSON.stringify(info.seed).replace(/"/g, '&quot;')}, ${JSON.stringify(info.customAvatar).replace(/"/g, '&quot;')}, ${JSON.stringify(info.isVerified).replace(/"/g, '&quot;')})">
-                    <img class="post-avatar" src="${escapeHtml(avatarSrc)}" alt=""
-                         onerror="this.src='https://robohash.org/default?set=set4'">
-                    <div class="author-details">
-                        <span class="author-name">${escapeHtml(info.author)}${badge}</span>
-                    </div>
-                </div>`;
-
-            const contentHtml = `<div class="post-content">${escapeHtml(info.content) || "Пустое сообщение"}</div>`;
-
-            const actionsHtml = `
-                <div class="post-actions">
-                    <div class="action-btn ${isLiked ? 'liked' : ''}"
-                         id="like-btn-${escapeHtml(p.id)}"
-                         onclick="toggleLike('${escapeHtml(p.id)}', ${likesCount})">
-                        ❤️ <span id="like-count-${escapeHtml(p.id)}">${likesCount}</span>
-                    </div>
-                    ${!isMine ? `
-                    <div class="action-btn chat-link"
-                         onclick="event.stopPropagation(); openChatWith(${JSON.stringify(info.author).replace(/"/g, '&quot;')}, ${JSON.stringify(info.authorId).replace(/"/g, '&quot;')}, ${JSON.stringify(info.seed).replace(/"/g, '&quot;')}, ${JSON.stringify(info.customAvatar).replace(/"/g, '&quot;')}, ${JSON.stringify(info.isVerified).replace(/"/g, '&quot;')}, '')">
-                        💬 Личное сообщение
-                    </div>` : ''}
-                    ${isMine ? `
-                    <div class="action-btn delete-btn" onclick="event.stopPropagation(); deletePost('${escapeHtml(p.id)}')">
-                        🗑️ Удалить
-                    </div>` : ''}
-                </div>`;
-
-            postEl.innerHTML = headerHtml + contentHtml + actionsHtml;
-            frag.appendChild(postEl);
-        });
-        container.appendChild(frag);
-    }
-
-    async function addPost() {
-        if (!currentUser) return;
-        const btn = document.getElementById('postSubmitBtn');
-        const txtEl = document.getElementById('postText');
-        const txt = txtEl.value.trim();
-        if (txt === "") return;
-        if (txt.length > MAX_POST_LEN) return alert("Пост слишком длинный");
-
-        const unlock = lockBtn(btn, "Отправка...");
-        try {
-            if (allServerPosts.length >= MAX_POSTS) {
-                const myOldPosts = allServerPosts
-                    .filter(p => {
-                        const parts = (p.name || "").split(CHAT_SEP);
-                        return parts[5] && String(parts[5]) === String(currentUserId);
-                    })
-                    .sort((a, b) => Number(a.id) - Number(b.id))
-                    .slice(0, 5);
-                await Promise.allSettled(
-                    myOldPosts.map(p => fetch(`${API_URL}/${p.id}`, { method: 'DELETE' }))
-                );
-            }
-
-            const packedData = [
-                currentUser.name,
-                txt,
-                currentUser.avatarSeed || currentUser.login,
-                currentUser.customAvatar || "",
-                currentUser.isVerified || "",
-                currentUserId
-            ].join(CHAT_SEP);
-
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: packedData, avatar: 0 })
-            });
-            if (!response.ok) throw new Error('POST failed');
-
-            txtEl.value = "";
-            updatePostCounter();
-            await loadData(true);
-        } catch (e) {
-            alert("Не удалось отправить публикацию.");
-            console.error(e);
-        } finally {
-            unlock();
-        }
-    }
-
-    async function deletePost(postId) {
-        if (!currentUser) return;
-        const post = allServerPosts.find(p => String(p.id) === String(postId));
-        if (!post) return;
-        const info = unpackPost(post);
-        if (String(info.authorId) !== String(currentUserId)) return alert("Вы можете удалять только свои посты.");
-
-        if (!confirm("Вы уверены, что хотите удалить этот пост?")) return;
-        try {
-            const response = await fetch(`${API_URL}/${postId}`, { method: 'DELETE' });
-            if (!response.ok) throw new Error();
-            allServerPosts = allServerPosts.filter(p => String(p.id) !== String(postId));
-            renderFeed();
-            renderMyPosts();
-            updateMyStats();
-            if (viewedUser) renderUserProfile(viewedUser);
-        } catch (e) {
-            alert("Не удалось удалить пост.");
-        }
-    }
-
-    const likeLocks = new Set();
-    async function toggleLike(postId, currentLikes) {
-        const postIdStr = String(postId);
-        if (likeLocks.has(postIdStr)) return;
-        likeLocks.add(postIdStr);
-
-        let localLikes = JSON.parse(localStorage.getItem('itp_liked') || "[]");
-        const hasLiked = localLikes.includes(postIdStr);
-        const newLikesCount = hasLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
-
-        if (hasLiked) localLikes = localLikes.filter(id => id !== postIdStr);
-        else localLikes.push(postIdStr);
-        localStorage.setItem('itp_liked', JSON.stringify(localLikes));
-
-        const el = document.getElementById(`like-count-${postId}`);
-        const parent = document.getElementById(`like-btn-${postId}`);
-        if (el) el.innerText = newLikesCount;
-        if (parent) parent.classList.toggle('liked', !hasLiked);
-
-        try {
-            const res = await fetch(`${API_URL}/${postId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ avatar: newLikesCount })
-            });
-            if (!res.ok) throw new Error('PUT failed');
-            const pIndex = allServerPosts.findIndex(p => String(p.id) === postIdStr);
-            if (pIndex !== -1) allServerPosts[pIndex].avatar = newLikesCount;
-            updateMyStats();
-        } catch (e) {
-            if (hasLiked) localLikes.push(postIdStr);
-            else localLikes = localLikes.filter(id => id !== postIdStr);
-            localStorage.setItem('itp_liked', JSON.stringify(localLikes));
-            if (el) el.innerText = currentLikes;
-            if (parent) parent.classList.toggle('liked', hasLiked);
-            console.error("Не удалось сохранить лайк", e);
-        } finally {
-            likeLocks.delete(postIdStr);
-        }
-    }
-
-    function updatePostCounter() {
-        const txt = document.getElementById('postText').value;
-        const counter = document.getElementById('postCounter');
-        counter.innerText = `${txt.length} / ${MAX_POST_LEN}`;
-        counter.classList.remove('warn', 'danger');
-        if (txt.length > MAX_POST_LEN * 0.9) counter.classList.add('danger');
-        else if (txt.length > MAX_POST_LEN * 0.7) counter.classList.add('warn');
-    }
-
-    /* ==================== СПИСОК ЛЮДЕЙ ==================== */
+    // ==================== ЛЮДИ ====================
     function renderPeopleList() {
-        const container = document.getElementById('peopleContainer');
-        if (!container || !currentUser) return;
+        const c = document.getElementById('peopleContainer');
+        if (!c || !currentUser) return;
 
-        const query = (document.getElementById('peopleSearchInput').value || "").trim().toLowerCase();
-
+        const q = (document.getElementById('peopleSearchInput').value || "").trim().toLowerCase();
         const filtered = allUsers
             .filter(u => String(u.id) !== String(currentUserId))
-            .filter(u => {
-                if (!query) return true;
-                return (u.login && u.login.toLowerCase().includes(query)) ||
-                       (u.name && u.name.toLowerCase().includes(query));
-            })
-            .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+            .filter(u => !q || (u.login||'').toLowerCase().includes(q) || (u.name||'').toLowerCase().includes(q));
 
-        if (filtered.length === 0) {
-            container.innerHTML = "<p style='text-align:center;color:#888;margin-top:20px;'>Никого не найдено.</p>";
+        if (!filtered.length) {
+            c.innerHTML = "<p style='text-align:center;color:#888;'>Никого не найдено.</p>";
             return;
         }
-
-        const myFollowing = parseFollowing(currentUser).map(String);
-
+        const myFollowing = (currentUser.following || []).map(String);
         const frag = document.createDocumentFragment();
+
         filtered.forEach(u => {
-            const avatarSrc = (u.customAvatar && String(u.customAvatar).startsWith("data:image"))
-                ? u.customAvatar
-                : getUserAvatarUrl(u.avatarSeed || u.login);
+            const avatarSrc = getUserAvatarUrl(u.avatarSeed, u.customAvatar);
             const badge = verifiedBadgeFromType(u.isVerified);
             const isFollowing = myFollowing.includes(String(u.id));
-
-            let displayName = u.name;
-            if (isBadFaker(displayName)) displayName = u.login || "Аноним";
+            let displayName = isBadFaker(u.name) ? u.login : u.name;
 
             const card = document.createElement('div');
             card.className = 'person-card';
             card.innerHTML = `
-                <img class="person-avatar" src="${escapeHtml(avatarSrc)}" alt=""
-                     onerror="this.src='https://robohash.org/default?set=set4'">
+                <img class="person-avatar" src="${escapeHtml(avatarSrc)}">
                 <div class="person-info">
                     <div class="person-name">${escapeHtml(displayName)}${badge}</div>
-                    <div class="person-login">@${escapeHtml(u.login || '—')}</div>
+                    <div class="person-login">@${escapeHtml(u.login||'—')}</div>
                 </div>
-                <button class="person-follow-btn ${isFollowing ? 'following' : ''}"
-                        onclick="event.stopPropagation(); toggleFollow(${JSON.stringify(u.id).replace(/"/g, '&quot;')})">
-                    ${isFollowing ? 'Отписаться' : 'Подписаться'}
+                <button class="person-follow-btn ${isFollowing?'following':''}"
+                        onclick="event.stopPropagation(); toggleFollow('${u.id}')">
+                    ${isFollowing?'Отписаться':'Подписаться'}
                 </button>`;
-
-            card.onclick = () => {
-                openUserProfile(u.name, u.id, u.avatarSeed || u.login, u.customAvatar || "", u.isVerified || "");
-            };
-
+            card.onclick = () => openUserProfile(u.name, u.id);
             frag.appendChild(card);
         });
-        container.innerHTML = "";
-        container.appendChild(frag);
+        c.innerHTML = ""; c.appendChild(frag);
     }
 
     async function toggleFollow(targetId) {
-        if (!currentUser) return;
-        if (String(targetId) === String(currentUserId)) return;
-
-        let myFollowing = parseFollowing(currentUser).map(String);
-        const targetIdStr = String(targetId);
-        const has = myFollowing.includes(targetIdStr);
-
-        if (has) myFollowing = myFollowing.filter(id => id !== targetIdStr);
-        else myFollowing.push(targetIdStr);
-
-        const newFollowingStr = JSON.stringify(myFollowing);
+        if (!currentUser || String(targetId) === String(currentUserId)) return;
+        let arr = (currentUser.following || []).map(String);
+        const has = arr.includes(String(targetId));
+        arr = has ? arr.filter(x => x !== String(targetId)) : [...arr, String(targetId)];
 
         try {
-            const res = await fetch(`${USERS_URL}/${currentUserId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ following: newFollowingStr })
-            });
-            if (!res.ok) throw new Error();
-
-            currentUser.following = newFollowingStr;
+            const { error } = await db.from('profiles').update({ following: arr }).eq('id', currentUserId);
+            if (error) throw error;
+            currentUser.following = arr;
             localStorage.setItem('itp_session', JSON.stringify(currentUser));
-
             const idx = allUsers.findIndex(u => String(u.id) === String(currentUserId));
-            if (idx !== -1) allUsers[idx].following = newFollowingStr;
-
-            renderPeopleList();
-            updateMyStats();
+            if (idx !== -1) allUsers[idx].following = arr;
+            renderPeopleList(); updateMyStats();
             if (viewedUser) renderUserProfile(viewedUser);
-        } catch (e) {
-            alert("Не удалось сохранить подписку");
-            console.error(e);
-        }
+        } catch (e) { alert("Ошибка подписки: " + e.message); }
     }
 
-    /* ==================== ЧУЖОЙ ПРОФИЛЬ ==================== */
-    function openUserProfile(name, authorId, seed, customAvatar, isVerified) {
+    // ==================== ЧУЖОЙ ПРОФИЛЬ ====================
+    function openUserProfile(name, authorId) {
         if (!authorId) return;
         if (String(authorId) === String(currentUserId)) { switchScreen('profile'); return; }
-
-        viewedUser = {
-            id: String(authorId),
-            name: name || "Аноним",
-            seed: seed || "default",
-            customAvatar: customAvatar || "",
-            isVerified: normalizeVerified(isVerified)
-        };
-
+        const u = allUsers.find(x => String(x.id) === String(authorId));
+        viewedUser = u ? { ...u } : { id: String(authorId), name: name||'Аноним', avatarSeed: 'default', customAvatar: '', isVerified: '' };
         switchScreen('user');
         renderUserProfile(viewedUser);
     }
 
     function renderUserProfile(user) {
-        const avatarSrc = user.customAvatar && user.customAvatar.startsWith("data:image")
-            ? user.customAvatar
-            : getUserAvatarUrl(user.seed);
-
+        const rec = allUsers.find(u => String(u.id) === String(user.id));
+        const data = rec || user;
+        const avatarSrc = getUserAvatarUrl(data.avatarSeed, data.customAvatar);
         document.getElementById('userProfileAvatar').src = avatarSrc;
-        document.getElementById('userProfileName').textContent = user.name;
-        document.getElementById('userProfileBadge').innerHTML = verifiedBadgeFromType(user.isVerified);
-
-        const userRecord = allUsers.find(u => String(u.id) === String(user.id));
-        document.getElementById('userProfileLogin').textContent = userRecord ? (userRecord.login || "—") : "—";
-        document.getElementById('userProfileCreatedAt').textContent = userRecord ? formatDate(userRecord.createdAt) : "—";
+        document.getElementById('userProfileName').textContent = data.name;
+        document.getElementById('userProfileBadge').innerHTML = verifiedBadgeFromType(data.isVerified);
+        document.getElementById('userProfileLogin').textContent = data.login || '—';
+        document.getElementById('userProfileCreatedAt').textContent = formatDate(data.createdAt);
 
         const bioEl = document.getElementById('userProfileBio');
-        if (userRecord && userRecord.bio) {
-            bioEl.textContent = userRecord.bio;
-            bioEl.style.display = "block";
-        } else {
-            bioEl.textContent = "";
-            bioEl.style.display = "none";
-        }
+        if (data.bio) { bioEl.textContent = data.bio; bioEl.style.display = 'block'; }
+        else { bioEl.textContent = ''; bioEl.style.display = 'none'; }
 
-        const userPosts = allServerPosts.filter(p => {
-            if (!p || !p.name) return false;
-            const parts = p.name.split(CHAT_SEP);
-            const body = parts[1] || "";
-            if (body.startsWith("[CHAT:")) return false;
-            return String(parts[5]) === String(user.id);
-        });
-        userPosts.sort((a, b) => Number(b.id) - Number(a.id));
+        const posts = allServerPosts.filter(p => !p.is_chat && String(p.author_id) === String(user.id));
+        const likesTotal = posts.reduce((s,p) => s + (p.likes||0), 0);
 
-        let likesTotal = 0;
-        userPosts.forEach(p => {
-            const n = Number(p.avatar);
-            if (!isNaN(n) && n > 0) likesTotal += n;
-        });
-
-        document.getElementById('userPostsCount').textContent = userPosts.length;
+        document.getElementById('userPostsCount').textContent = posts.length;
         document.getElementById('userLikesCount').textContent = likesTotal;
-
-        const userFollowing = userRecord ? parseFollowing(userRecord).length : 0;
-        document.getElementById('userFollowingCount').textContent = userFollowing;
+        document.getElementById('userFollowingCount').textContent = (rec?.following || []).length;
 
         const followBtn = document.getElementById('userFollowBtn');
-        const myFollowing = parseFollowing(currentUser).map(String);
-        const isFollowing = myFollowing.includes(String(user.id));
-        followBtn.textContent = isFollowing ? "Отписаться" : "Подписаться";
-        followBtn.style.background = isFollowing ? "var(--bg-elevated)" : "var(--accent)";
-        followBtn.style.color = isFollowing ? "var(--text-primary)" : "#fff";
-        followBtn.style.border = isFollowing ? "1px solid var(--border)" : "none";
+        const isFollowing = (currentUser.following||[]).map(String).includes(String(user.id));
+        followBtn.textContent = isFollowing ? 'Отписаться' : 'Подписаться';
+        followBtn.style.background = isFollowing ? 'var(--bg-elevated)' : 'var(--accent)';
+        followBtn.style.color = isFollowing ? 'var(--text-primary)' : '#fff';
 
-        const container = document.getElementById('userPostsContainer');
-        container.innerHTML = "";
-
-        if (userPosts.length === 0) {
-            container.innerHTML = "<p style='text-align:center;color:#888;margin-top:20px;'>У этого пользователя нет публикаций.</p>";
+        const c = document.getElementById('userPostsContainer');
+        c.innerHTML = "";
+        if (!posts.length) {
+            c.innerHTML = "<p style='text-align:center;color:#888;'>Публикаций нет.</p>";
             return;
         }
-
-        const localLikes = JSON.parse(localStorage.getItem('itp_liked') || "[]");
+        const liked = JSON.parse(localStorage.getItem('itp_liked') || "[]");
+        const badge = verifiedBadgeFromType(data.isVerified);
         const frag = document.createDocumentFragment();
 
-        userPosts.forEach(p => {
-            const info = unpackPost(p);
-            let likesCount = Number(p.avatar);
-            if (!likesCount || isNaN(likesCount)) likesCount = 0;
-
-            const avatarSrc2 = user.customAvatar && user.customAvatar.startsWith("data:image")
-                ? user.customAvatar : getUserAvatarUrl(user.seed);
-            const badge = verifiedBadgeFromType(user.isVerified);
-            const isLiked = localLikes.includes(String(p.id));
-
-            const postEl = document.createElement('div');
-            postEl.className = 'post';
-            postEl.innerHTML = `
+        posts.forEach(p => {
+            const isLiked = liked.includes(String(p.id));
+            const el = document.createElement('div');
+            el.className = 'post';
+            el.innerHTML = `
                 <div class="post-header">
-                    <img class="post-avatar" src="${escapeHtml(avatarSrc2)}" alt=""
-                         onerror="this.src='https://robohash.org/default?set=set4'">
-                    <div class="author-details">
-                        <span class="author-name">${escapeHtml(user.name)}${badge}</span>
-                    </div>
+                    <img class="post-avatar" src="${escapeHtml(avatarSrc)}">
+                    <div class="author-details"><span class="author-name">${escapeHtml(data.name)}${badge}</span></div>
                 </div>
-                <div class="post-content">${escapeHtml(info.content) || "Пустое сообщение"}</div>
+                <div class="post-content">${escapeHtml(p.content) || "Пустое сообщение"}</div>
                 <div class="post-actions">
-                    <div class="action-btn ${isLiked ? 'liked' : ''}"
-                         id="like-btn-${escapeHtml(p.id)}"
-                         onclick="toggleLike('${escapeHtml(p.id)}', ${likesCount})">
-                        ❤️ <span id="like-count-${escapeHtml(p.id)}">${likesCount}</span>
+                    <div class="action-btn ${isLiked?'liked':''}" id="like-btn-${p.id}" onclick="toggleLike(${p.id}, ${p.likes||0})">
+                        ❤️ <span id="like-count-${p.id}">${p.likes||0}</span>
                     </div>
                 </div>`;
-            frag.appendChild(postEl);
+            frag.appendChild(el);
         });
-        container.appendChild(frag);
+        c.appendChild(frag);
     }
 
-    function toggleFollowViewedUser() {
-        if (!viewedUser) return;
-        toggleFollow(viewedUser.id);
-    }
+    function toggleFollowViewedUser() { if (viewedUser) toggleFollow(viewedUser.id); }
+    function openChatWithViewedUser() { if (viewedUser) openChatWithId(viewedUser.id); }
 
-    function openChatWithViewedUser() {
-        if (!viewedUser) return;
-        const u = allUsers.find(x => String(x.id) === String(viewedUser.id));
-        openChatWith(
-            viewedUser.name,
-            viewedUser.id,
-            viewedUser.seed,
-            viewedUser.customAvatar,
-            viewedUser.isVerified,
-            u ? (u.login || "") : ""
-        );
-    }
-
-    /* ==================== ЧАТЫ ==================== */
-    function getChatPartners() {
-        const map = new Map();
-
-        allServerPosts.forEach(p => {
-            if (!p || !p.name) return;
-            const parts = p.name.split(CHAT_SEP);
-            if (parts.length < 2) return;
-            const body = parts[1] || "";
-            const m = body.match(/^\[CHAT:(\d+)->(\d+)\]/);
-            if (!m) return;
-
-            const fromId = String(m[1]);
-            const toId   = String(m[2]);
-            const myId   = String(currentUserId);
-
-            let partnerId = null;
-            if (fromId === myId) partnerId = toId;
-            else if (toId === myId) partnerId = fromId;
-            else return;
-
-            if (partnerId === myId) return;
-
-            const createdAt = Number(p.id) || 0;
-            let preview = body.replace(/^\[CHAT:\d+->\d+\]\s?/, "").trim();
-            if (preview.length > 60) preview = preview.slice(0, 60) + '…';
-
-            const existing = map.get(partnerId);
-            if (!existing || createdAt > existing.lastMsgId) {
-                map.set(partnerId, {
-                    partnerId,
-                    lastMsgId: createdAt,
-                    lastText: preview,
-                    fromMe: fromId === myId,
-                    lastAt: Math.floor(Date.now() / 1000)
-                });
-            }
-        });
-
-        const result = [];
-        map.forEach(v => {
-            const u = allUsers.find(x => String(x.id) === v.partnerId);
-            if (u) result.push(Object.assign({}, v, {
-                name: u.name,
-                login: u.login,
-                avatarSeed: u.avatarSeed || u.login,
-                customAvatar: u.customAvatar || "",
-                isVerified: normalizeVerified(u.isVerified)
-            }));
-        });
-
-        result.sort((a, b) => b.lastMsgId - a.lastMsgId);
-        return result;
-    }
-
-    function countUnreadFor(partnerId) {
-        const myId = String(currentUserId);
-        const pid  = String(partnerId);
-        const lastRead = Number(readChats[pid] || 0);
-        let count = 0;
-        allServerPosts.forEach(p => {
-            const id = Number(p.id) || 0;
-            if (id <= lastRead) return;
-            const parts = (p.name || "").split(CHAT_SEP);
-            const body = parts[1] || "";
-            const tag = `[CHAT:${pid}->${myId}]`;
-            if (body.startsWith(tag)) count++;
-        });
-        return count;
-    }
-
-    function updateChatsNavBadge() {
-        if (!currentUser) return;
-        const total = getChatPartners().reduce((s, c) => s + countUnreadFor(c.partnerId), 0);
-        const nav = document.getElementById('nav-chats');
-        if (!nav) return;
-        let badge = nav.querySelector('.nav-badge');
-        if (total > 0) {
-            if (!badge) {
-                badge = document.createElement('span');
-                badge.className = 'nav-badge';
-                nav.appendChild(badge);
-            }
-            badge.textContent = total > 99 ? '99+' : total;
-        } else if (badge) {
-            badge.remove();
-        }
-    }
-
-    function renderChatsList() {
-        const container = document.getElementById('chatsList');
-        if (!container || !currentUser) return;
-
-        const partners = getChatPartners();
-
-        if (partners.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <p>Пока нет диалогов.<br>Напишите кому-нибудь в ленте или в профиле.</p>
-                </div>
-            `;
-            updateChatsNavBadge();
-            return;
-        }
-
-        const frag = document.createDocumentFragment();
-        partners.forEach(c => {
-            const avatarSrc = (c.customAvatar && String(c.customAvatar).startsWith("data:image"))
-                ? c.customAvatar
-                : getUserAvatarUrl(c.avatarSeed);
-
-            const badge = verifiedBadgeFromType(c.isVerified);
-            const unread = countUnreadFor(c.partnerId);
-
-            let displayName = c.name;
-            if (isBadFaker(displayName)) displayName = c.login || "Аноним";
-
-            const item = document.createElement('div');
-            item.className = 'chat-list-item' + (unread > 0 ? ' unread' : '');
-            item.innerHTML = `
-                <div class="chat-list-avatar-wrap">
-                    <img class="chat-list-avatar" src="${escapeHtml(avatarSrc)}" alt=""
-                         onerror="this.src='https://robohash.org/default?set=set4'">
-                    <span class="chat-list-online"></span>
-                </div>
-                <div class="chat-list-content">
-                    <div class="chat-list-name">${escapeHtml(displayName)}${badge}</div>
-                    <div class="chat-list-preview">
-                        ${c.fromMe ? '<span class="you">Вы: </span>' : ''}${escapeHtml(c.lastText) || 'Нет сообщений'}
-                    </div>
-                </div>
-                <div class="chat-list-meta">
-                    <div class="chat-list-time">${formatChatTime(c.lastAt)}</div>
-                    ${unread > 0 ? `<div class="chat-list-badge">${unread > 99 ? '99+' : unread}</div>` : ''}
-                </div>
-            `;
-
-            item.onclick = () => {
-                openChatWith(c.name, c.partnerId, c.avatarSeed, c.customAvatar, c.isVerified, c.login);
-            };
-
-            frag.appendChild(item);
-        });
-
-        container.innerHTML = "";
-        container.appendChild(frag);
-        updateChatsNavBadge();
-    }
-
-    function openChatWith(name, partnerId, seed, customAvatar, isVerified, login) {
-        if (!partnerId || String(partnerId) === String(currentUserId)) return;
-
-        activeChatPartner = {
-            id: String(partnerId),
-            name: name || "Аноним",
-            seed: seed || "default",
-            customAvatar: customAvatar || "",
-            isVerified: normalizeVerified(isVerified),
-            login: login || ""
-        };
-
+    // ==================== ЧАТЫ ====================
+    function openChatWithId(partnerId) {
+        const u = allUsers.find(x => String(x.id) === String(partnerId));
+        if (!u) return alert("Пользователь не найден");
+        activeChatPartner = { ...u };
+        
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById('screen-chats').classList.add('active');
@@ -2238,84 +1021,60 @@
         document.getElementById('chatsListView').style.display = 'none';
         document.getElementById('chatRoomView').style.display = 'block';
 
-        const avatarSrc = (customAvatar && String(customAvatar).startsWith("data:image"))
-            ? customAvatar
-            : getUserAvatarUrl(seed);
+        const avatarSrc = getUserAvatarUrl(u.avatarSeed, u.customAvatar);
         document.getElementById('chatRoomAvatar').src = avatarSrc;
-        document.getElementById('chatRoomName').innerHTML = `${escapeHtml(name || "Аноним")}${verifiedBadgeFromType(isVerified)}`;
-        document.getElementById('chatRoomLogin').textContent = login ? ('@' + login) : '';
-
+        document.getElementById('chatRoomName').innerHTML = `${escapeHtml(u.name)}${verifiedBadgeFromType(u.isVerified)}`;
+        document.getElementById('chatRoomLogin').textContent = u.login ? '@'+u.login : '';
+        
         renderDirectMessages();
         window.scrollTo({ top: 0, behavior: 'instant' });
     }
 
-    // ==================== ВАЖНО: ПЕРЕХОД В ПРОФИЛЬ ИЗ ЧАТА ====================
     function openChatPartnerProfile() {
         if (!activeChatPartner) return;
-        openUserProfile(
-            activeChatPartner.name,
-            activeChatPartner.id,
-            activeChatPartner.seed,
-            activeChatPartner.customAvatar,
-            activeChatPartner.isVerified
-        );
+        openUserProfile(activeChatPartner.name, activeChatPartner.id);
     }
 
     function closeChatRoom() {
         activeChatPartner = null;
-        const listView = document.getElementById('chatsListView');
-        const roomView = document.getElementById('chatRoomView');
-        if (listView) listView.style.display = 'block';
-        if (roomView) roomView.style.display = 'none';
+        document.getElementById('chatsListView').style.display = 'block';
+        document.getElementById('chatRoomView').style.display = 'none';
         renderChatsList();
     }
 
     function renderDirectMessages() {
         if (!currentUser || !activeChatPartner) return;
-
         const container = document.getElementById('chatMessagesContainer');
-        const prevScroll = container.scrollTop;
         const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
         container.innerHTML = "";
 
-        const myId       = String(currentUserId);
-        const partnerId  = String(activeChatPartner.id);
-        const tagOut     = `[CHAT:${myId}->${partnerId}]`;
-        const tagIn      = `[CHAT:${partnerId}->${myId}]`;
+        const myId = String(currentUserId);
+        const partnerId = String(activeChatPartner.id);
 
-        const messages = allServerPosts.filter(p => {
-            if (!p || !p.name) return false;
-            const parts = p.name.split(CHAT_SEP);
-            if (parts.length < 2) return false;
-            const body = parts[1];
-            return body.startsWith(tagOut) || body.startsWith(tagIn);
-        });
+        const messages = allServerPosts.filter(p => 
+            p.is_chat && 
+            ((String(p.author_id) === myId && String(p.chat_to) === partnerId) ||
+             (String(p.author_id) === partnerId && String(p.chat_to) === myId))
+        ).sort((a,b) => a.id - b.id);
 
-        messages.sort((a, b) => Number(a.id) - Number(b.id));
-
-        if (messages.length === 0) {
+        if (!messages.length) {
             container.innerHTML = "<p style='text-align:center;color:#888;margin-top:40px;'>Нет сообщений. Напишите первым!</p>";
         } else {
             const frag = document.createDocumentFragment();
             messages.forEach(m => {
-                const parts = m.name.split(CHAT_SEP);
-                const body = parts[1] || "";
-                const messageContent = body.replace(/^\[CHAT:\d+->\d+\]\s?/, "");
-                const isOutgoing = body.startsWith(tagOut);
-
+                const isOutgoing = String(m.author_id) === myId;
                 const div = document.createElement('div');
                 div.className = `msg ${isOutgoing ? 'outgoing' : 'incoming'}`;
-                div.innerText = messageContent;
+                div.innerText = m.content;
                 frag.appendChild(div);
             });
             container.appendChild(frag);
         }
 
         if (wasAtBottom) container.scrollTop = container.scrollHeight;
-        else container.scrollTop = prevScroll;
 
         if (messages.length > 0) {
-            const maxId = Math.max.apply(null, messages.map(m => Number(m.id) || 0));
+            const maxId = Math.max(...messages.map(m => m.id));
             readChats[partnerId] = maxId;
             saveReadChats();
             updateChatsNavBadge();
@@ -2327,70 +1086,144 @@
         const input = document.getElementById('chatMessageInput');
         const btn   = document.getElementById('chatSendBtn');
         const txt = input.value.trim();
-        if (txt === "") return;
-        if (txt.length > MAX_CHAT_LEN) return alert("Сообщение слишком длинное");
-
-        const tag = `[CHAT:${currentUserId}->${activeChatPartner.id}]`;
-        const packedData = [
-            currentUser.name,
-            `${tag} ${txt}`,
-            currentUser.avatarSeed || currentUser.login,
-            currentUser.customAvatar || "",
-            currentUser.isVerified || "",
-            currentUserId
-        ].join(CHAT_SEP);
+        if (!txt) return;
+        if (txt.length > MAX_CHAT_LEN) return alert("Слишком длинное сообщение");
 
         const unlock = lockBtn(btn, "...");
         input.value = "";
         try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: packedData, avatar: 0 })
+            const { error } = await db.from('posts').insert({
+                author_id: currentUserId,
+                chat_to: activeChatPartner.id,
+                content: txt,
+                likes: 0,
+                is_chat: true
             });
-            if (!response.ok) throw new Error();
+            if (error) throw error;
             await loadData(true);
         } catch (e) {
-            alert("Не удалось отправить сообщение");
+            alert("Не удалось отправить: " + e.message);
             input.value = txt;
-        } finally {
-            unlock();
-        }
+        } finally { unlock(); }
     }
 
-    /* ==================== ПОЛЛИНГ ==================== */
-    function startPolling() {
-        if (pollInterval) clearInterval(pollInterval);
-        pollInterval = setInterval(() => {
-            if (document.hidden || !currentUser) return;
-            if (isEditingProfile) return;
+    function getChatPartners() {
+        const myId = String(currentUserId);
+        const partners = new Map();
 
-            loadData();
+        allServerPosts.filter(p => p.is_chat).forEach(p => {
+            let partnerId = null;
+            if (String(p.author_id) === myId) partnerId = String(p.chat_to);
+            else if (String(p.chat_to) === myId) partnerId = String(p.author_id);
+            else return;
 
-            const profileActive = document.getElementById('screen-profile').classList.contains('active');
-            if (!profileActive) loadUsers();
-        }, 8000);
+            const existing = partners.get(partnerId);
+            if (!existing || p.id > existing.lastMsgId) {
+                partners.set(partnerId, {
+                    partnerId,
+                    lastMsgId: p.id,
+                    lastText: p.content,
+                    fromMe: String(p.author_id) === myId,
+                    lastAt: p.created_at
+                });
+            }
+        });
+
+        const res = [];
+        partners.forEach(v => {
+            const u = allUsers.find(x => String(x.id) === v.partnerId);
+            if (u) res.push({ ...v, ...u });
+        });
+        return res.sort((a,b) => b.lastMsgId - a.lastMsgId);
     }
 
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && currentUser && !isEditingProfile) {
-            loadData(true);
-            const profileActive = document.getElementById('screen-profile').classList.contains('active');
-            if (!profileActive) loadUsers();
+    function countUnreadFor(partnerId) {
+        const myId = String(currentUserId);
+        const lastRead = Number(readChats[partnerId] || 0);
+        return allServerPosts.filter(p => 
+            p.is_chat && p.id > lastRead && 
+            String(p.author_id) === String(partnerId) && String(p.chat_to) === myId
+        ).length;
+    }
+
+    function renderChatsList() {
+        const c = document.getElementById('chatsList');
+        if (!c || !currentUser) return;
+        const partners = getChatPartners();
+
+        if (!partners.length) {
+            c.innerHTML = "<p style='text-align:center;color:#888;'>Пока нет диалогов.</p>";
+            updateChatsNavBadge();
+            return;
         }
-    });
+        const frag = document.createDocumentFragment();
+        partners.forEach(p => {
+            const avatarSrc = getUserAvatarUrl(p.avatarSeed, p.customAvatar);
+            const badge = verifiedBadgeFromType(p.isVerified);
+            const unread = countUnreadFor(p.partnerId);
 
-    window.addEventListener('beforeunload', () => {
-        if (pollInterval) clearInterval(pollInterval);
-    });
+            const item = document.createElement('div');
+            item.className = 'chat-list-item' + (unread > 0 ? ' unread' : '');
+            item.innerHTML = `
+                <img class="chat-list-avatar" src="${escapeHtml(avatarSrc)}">
+                <div class="chat-list-content">
+                    <div class="chat-list-name">${escapeHtml(p.name)}${badge}</div>
+                    <div class="chat-list-preview">${p.fromMe ? '<span class="you">Вы: </span>' : ''}${escapeHtml(p.lastText)}</div>
+                </div>
+                <div class="chat-list-meta">
+                    <div class="chat-list-time">${formatChatTime(p.lastAt)}</div>
+                    ${unread > 0 ? `<div class="chat-list-badge">${unread}</div>` : ''}
+                </div>`;
+            item.onclick = () => openChatWithId(p.partnerId);
+            frag.appendChild(item);
+        });
+        c.innerHTML = ""; c.appendChild(frag);
+        updateChatsNavBadge();
+    }
 
-    /* ==================== ИНИЦИАЛИЗАЦИЯ ==================== */
+    function updateChatsNavBadge() {
+        if (!currentUser) return;
+        const total = getChatPartners().reduce((s, c) => s + countUnreadFor(c.partnerId), 0);
+        const nav = document.getElementById('nav-chats');
+        let badge = nav.querySelector('.nav-badge');
+        if (total > 0) {
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'nav-badge';
+                nav.appendChild(badge);
+            }
+            badge.textContent = total > 99 ? '99+' : total;
+        } else if (badge) badge.remove();
+    }
+
+    // ==================== НАВИГАЦИЯ И СТАРТ ====================
+    function switchScreen(name) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(`screen-${name}`)?.classList.add('active');
+        document.getElementById(`nav-${name}`)?.classList.add('active');
+        if (name === 'profile') { updateMyStats(); renderMyPosts(); }
+        if (name === 'people') renderPeopleList();
+        if (name === 'chats') closeChatRoom();
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
+    function applyTheme(theme) {
+        document.body.classList.toggle('light', theme === 'light');
+        document.getElementById('themeToggle').textContent = theme === 'light' ? '☀️' : '🌙';
+    }
+    function toggleTheme() {
+        const next = document.body.classList.contains('light') ? 'dark' : 'light';
+        applyTheme(next);
+        localStorage.setItem('itp_theme', next);
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
-        const postText = document.getElementById('postText');
-        if (postText) postText.addEventListener('input', updatePostCounter);
+        applyTheme(localStorage.getItem('itp_theme') || 'dark');
+        document.getElementById('postText').addEventListener('input', updatePostCounter);
         updatePostCounter();
 
-        if (restoreSession()) {
+        if (await restoreSession()) {
             await enterApp();
         } else {
             switchScreen('auth');
