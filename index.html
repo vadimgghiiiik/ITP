@@ -8,7 +8,14 @@
 </head>
 <body>
 
-    <header>
+    <!-- Экран загрузки -->
+    <div id="screen-loading" class="screen active" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center;">
+        <div class="logo" style="font-size: 36px; margin-bottom: 20px;">ИТП</div>
+        <div class="spinner"></div>
+        <p style="margin-top: 20px; color: var(--text-muted); font-size: 14px;">Проверка сессии...</p>
+    </div>
+
+    <header style="display: none;" id="mainHeader">
         <div class="logo">ИТП</div>
         <div class="header-right">
             <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Сменить тему">🌙</button>
@@ -19,7 +26,7 @@
         </div>
     </header>
 
-    <div id="screen-auth" class="screen active">
+    <div id="screen-auth" class="screen">
         <div class="auth-card">
             <h2>Вход в ИТП</h2>
             <input type="text" id="authLogin" placeholder="Логин" maxlength="30" autocomplete="username">
@@ -378,6 +385,20 @@
     .msg.image-only { padding: 4px; background: transparent; box-shadow: none; }
     .msg.image-only.incoming { background: transparent; border: none; }
     .msg.image-only.outgoing { background: transparent; }
+
+    /* Спиннер загрузки */
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid var(--border);
+        border-top: 4px solid var(--accent);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 </style>
 
 <script>
@@ -1347,9 +1368,27 @@
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById(`screen-${name}`)?.classList.add('active');
         document.getElementById(`nav-${name}`)?.classList.add('active');
-        if (name === 'profile') { updateMyStats(); renderMyPosts(); }
-        if (name === 'people') renderPeopleList();
-        if (name === 'chats') closeChatRoom();
+        
+        // Обновление данных при переходе на вкладки
+        if (name === 'feed') {
+            loadData(true);
+        }
+        
+        if (name === 'profile') {
+            updateMyStats(); 
+            renderMyPosts();
+            loadData(true);
+        }
+        
+        if (name === 'people') {
+            loadUsers();
+        }
+        
+        if (name === 'chats') {
+            closeChatRoom();
+            loadData(true);
+        }
+        
         window.scrollTo({ top: 0, behavior: 'instant' });
     }
 
@@ -1368,7 +1407,14 @@
         document.getElementById('postText').addEventListener('input', updatePostCounter);
         updatePostCounter();
 
-        if (await restoreSession()) {
+        // Проверяем сессию (в это время показывается экран загрузки)
+        const hasSession = await restoreSession();
+
+        // Скрываем экран загрузки и показываем шапку
+        document.getElementById('screen-loading').style.display = 'none';
+        document.getElementById('mainHeader').style.display = 'flex';
+
+        if (hasSession) {
             await enterApp();
         } else {
             switchScreen('auth');
