@@ -49,6 +49,14 @@
     </div>
 
     <div id="screen-feed" class="screen">
+        <div class="feed-topbar">
+            <div class="feed-tabs">
+                <button id="tabAll" class="feed-tab active" onclick="setFeedTab('all')">Все</button>
+                <button id="tabFollow" class="feed-tab" onclick="setFeedTab('follow')">Подписки</button>
+            </div>
+            <input type="text" id="feedSearchInput" placeholder="🔍 Поиск в ленте" maxlength="40" oninput="setFeedQuery(this.value)">
+        </div>
+        <div id="storiesStrip"></div>
         <div class="feed-form">
             <textarea id="postText" placeholder="Что у вас нового?" maxlength="2000"></textarea>
             <div id="postImagePreviewWrap" style="display:none; margin-top:10px; position:relative;">
@@ -59,7 +67,13 @@
                 <div style="display:flex; align-items:center; gap:10px;">
                     <button type="button" class="btn-secondary" onclick="document.getElementById('postImageInput').click()" style="padding:8px 12px; font-size:13px;">📷 Фото</button>
                     <input type="file" id="postImageInput" accept="image/*" style="display:none" onchange="handlePostImageSelect(event)">
+                    <button type="button" class="btn-secondary" style="padding:8px 12px;font-size:13px;" onclick="toggleEmojiPicker(this,'postText')">😊</button>
+                    <select id="postVisibility" title="Видимость поста" style="background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-pill);padding:7px 8px;font-size:12px;font-family:inherit;outline:none;">
+                        <option value="public">🌐 Всем</option>
+                        <option value="followers">🔒 Подписчикам</option>
+                    </select>
                     <span id="postCounter" class="post-counter">0 / 2000</span>
+                    <input type="file" id="storyFileInput" accept="image/*" style="display:none" onchange="addStory(event)">
                 </div>
                 <button id="postSubmitBtn" onclick="addPost()">Опубликовать</button>
             </div>
@@ -100,6 +114,8 @@
                 </div>
                 <div class="chat-footer">
                     <button type="button" onclick="document.getElementById('chatImageInput').click()" id="chatImageBtn" style="background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border);">📷</button>
+                    <button type="button" id="chatEmojiBtn" onclick="toggleEmojiPicker(this,'chatMessageInput')" style="background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border);">😊</button>
+                    <button type="button" id="chatMicBtn" onclick="toggleVoiceRecording()" title="Голосовое сообщение" style="background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border);">🎤</button>
                     <input type="file" id="chatImageInput" accept="image/*" style="display:none" onchange="handleChatImageSelect(event)">
                     <input type="text" id="chatMessageInput" placeholder="Напишите сообщение..." maxlength="1000"
                            onkeypress="if(event.key==='Enter'){event.preventDefault();sendDirectMessage();}">
@@ -141,8 +157,12 @@
             <div class="profile-buttons">
                 <button onclick="saveProfile()" id="saveProfileBtn">Сохранить профиль</button>
                 <button class="btn-secondary" onclick="resetAvatar()">Сбросить аватар</button>
+                <button class="btn-secondary" id="myFollowersBtn" onclick="showFollowers()">👥 Подписчики: 0</button>
+                <button class="btn-secondary" id="privateToggleBtn" onclick="togglePrivate()">🔒 Закрытый профиль: выкл</button>
+                <button class="btn-secondary" id="reportsBtn" onclick="openReports()" style="display:none;">🛡️ Жалобы</button>
                 <button class="btn-secondary logout-btn" onclick="logout()">Выйти</button>
             </div>
+            <div id="followRequestsBlock" style="width:100%;margin-top:12px;"></div>
         </div>
 
         <h4 class="user-posts-title">Мои посты</h4>
@@ -397,9 +417,50 @@
     .msg.outgoing .msg-quote{background:rgba(255,255,255,.18);}
     .ext-banned { color: var(--accent); }
 
+    /* === v3 === */
+    .feed-topbar{display:flex;gap:10px;margin-bottom:12px;align-items:center;}
+    .feed-tabs{display:flex;gap:6px;flex-shrink:0;}
+    .feed-tab{background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:7px 14px;font-size:13px;border-radius:var(--radius-pill);box-shadow:none;}
+    .feed-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+    #feedSearchInput{flex:1;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-pill);padding:8px 14px;outline:none;font-family:inherit;font-size:13px;min-width:0;}
+    #storiesStrip{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 12px;scrollbar-width:none;}
+    .story-bubble{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex-shrink:0;}
+    .story-bubble span{font-size:11px;color:var(--text-secondary);max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .story-img{width:64px;height:64px;border-radius:50%;border:2px solid var(--accent);padding:2px;background:var(--bg-card);box-sizing:border-box;}
+    .story-img img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;}
+    .rep-item{border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px;font-size:13px;text-align:left;}
+
 </style>
 
 <script>
+    /* ==================== SQL-МИГРАЦИЯ (выполнить один раз в Supabase SQL Editor) ====================
+    create table if not exists public.likes (
+      post_id bigint not null, user_id uuid not null, created_at timestamptz default now(),
+      primary key (post_id, user_id)
+    );
+    alter table public.posts add column if not exists views bigint default 0;
+    alter table public.posts add column if not exists voice_url text;
+    alter table public.posts add column if not exists visibility text default 'public';
+    alter table public.profiles add column if not exists private boolean default false;
+    alter table public.profiles add column if not exists follow_requests jsonb default '[]';
+    alter table public.profiles add column if not exists pinned_post_id bigint;
+    create table if not exists public.typing (
+      id bigint generated always as identity primary key,
+      user_id uuid not null, chat_with uuid not null, created_at timestamptz default now()
+    );
+    create table if not exists public.reports (
+      id bigint generated always as identity primary key,
+      post_id bigint, reporter_id uuid, reason text, resolved boolean default false,
+      created_at timestamptz default now()
+    );
+    create table if not exists public.stories (
+      id bigint generated always as identity primary key,
+      author_id uuid not null, image_url text not null, created_at timestamptz default now()
+    );
+    insert into storage.buckets (id, name, public) values ('images','images',true) on conflict do nothing;
+    -- Не забудьте включить RLS-политики для новых таблиц (или отключить RLS для теста)
+    ====================================================================================== */
+
     // ==================== SUPABASE INIT ====================
     const SUPABASE_URL = 'https://bskhcsozxxiohffdzism.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_2BR0VPbgytwyeGK7QF5Z2w_98eCDy1B';
@@ -839,10 +900,14 @@
     }
 
     async function deletePost(id) {
-        if (!confirm("Удалить этот пост?")) return;
+        if (!confirm("Удалить этот пост? Вместе с ним удалятся все репосты.")) return;
         try {
+            // сначала удаляем репосты этой публикации, затем сам пост
+            const { error: repErr } = await db.from('posts').delete().eq('repost_of', id);
+            if (repErr) throw repErr;
             const { error } = await db.from('posts').delete().eq('id', id);
             if (error) throw error;
+            EXT.page = 1;
             await loadData(true);
         } catch (e) { alert("Не удалось удалить: " + e.message); }
     }
@@ -902,6 +967,8 @@
         if (document.activeElement !== bioInput)  bioInput.value  = currentUser.bio || "";
 
         document.getElementById('profileLoginValue').textContent = currentUser.login;
+        const rb = document.getElementById('reportsBtn');
+        if(rb) rb.style.display = currentUser.isVerified ? 'block' : 'none';
         document.getElementById('profileCreatedAt').textContent = formatDate(currentUser.createdAt);
         updateMyStats();
     }
@@ -913,12 +980,20 @@
         document.getElementById('myPostsCount').textContent = myPublic.length;
         document.getElementById('myLikesCount').textContent = likes;
         document.getElementById('myFollowingCount').textContent = (currentUser.following || []).length;
+        const followers = allUsers.filter(u => (u.following || []).map(String).includes(String(currentUserId))).length;
+        const fb = document.getElementById('myFollowersBtn');
+        if(fb) fb.textContent = '👥 Подписчики: ' + followers;
+        const pb = document.getElementById('privateToggleBtn');
+        if(pb) pb.textContent = '🔒 Закрытый профиль: ' + (currentUser.private ? 'вкл' : 'выкл');
+        renderFollowRequests();
     }
 
     function renderMyPosts() {
         const c = document.getElementById('myPostsContainer');
         if (!c || !currentUser) return;
         const myPosts = allServerPosts.filter(p => !p.is_chat && String(p.author_id) === String(currentUserId));
+        const myPin = currentUser.pinnedPostId;
+        myPosts.sort((a,b) => ((b.id === myPin) ? 1 : 0) - ((a.id === myPin) ? 1 : 0));
         if (!myPosts.length) {
             c.innerHTML = "<p style='text-align:center;color:#888;margin-top:20px;'>У вас пока нет постов.</p>";
             return;
@@ -1098,6 +1173,8 @@
         else { bioEl.textContent = ''; bioEl.style.display = 'none'; }
 
         const posts = allServerPosts.filter(p => !p.is_chat && String(p.author_id) === String(user.id));
+        const theirPin = rec ? rec.pinnedPostId : null;
+        posts.sort((a,b) => ((b.id === theirPin) ? 1 : 0) - ((a.id === theirPin) ? 1 : 0));
         const likesTotal = posts.reduce((s,p) => s + (p.likes||0), 0);
 
         document.getElementById('userPostsCount').textContent = posts.length;
@@ -1175,6 +1252,7 @@
 
     function closeChatRoom() {
         activeChatPartner = null;
+        if(EXT.typingTimer){ clearInterval(EXT.typingTimer); EXT.typingTimer = null; }
         document.getElementById('chatsListView').style.display = 'block';
         document.getElementById('chatRoomView').style.display = 'none';
         renderChatsList();
@@ -1348,6 +1426,8 @@
     function updateChatsNavBadge() {
         if (!currentUser) return;
         const total = getChatPartners().reduce((s, c) => s + countUnreadFor(c.partnerId), 0);
+        const sum = total + (EXT.notifCount || 0);
+        document.title = (sum > 0 ? '(' + sum + ') ' : '') + 'ИТП — Социальная сеть';
         const nav = document.getElementById('nav-chats');
         let badge = nav.querySelector('.nav-badge');
         if (total > 0) {
@@ -1396,7 +1476,9 @@
 
     // ==================== РАСШИРЕНИЯ v2 ====================
     const EXT = { page:1, pageSize:15, tagFilter:null, reply:null, notifOpen:false,
-                  polls:{}, myVotes:{}, commentsAll:{}, onlineTimer:null };
+                  polls:{}, myVotes:{}, commentsAll:{}, onlineTimer:null,
+                  feedTab:'all', feedQuery:'', likeSet:new Set(), likeCounts:{},
+                  stories:[], notifCount:0, typingTimer:null, reported:new Set() };
 
     function isOnline(u){
         if(!u || !u.lastSeen) return false;
@@ -1438,6 +1520,8 @@
         try {
             const { count } = await db.from('notifications').select('*', { count:'exact', head:true })
                 .eq('user_id', currentUserId).eq('read', false);
+            EXT.notifCount = count || 0;
+            updateChatsNavBadge();
             const b = document.getElementById('notifBadge');
             if(count > 0){ b.style.display = 'block'; b.textContent = count > 99 ? '99+' : count; }
             else b.style.display = 'none';
@@ -1524,17 +1608,34 @@
     }
 
     // ---------- репосты ----------
+    const repostLocks = new Set();
     async function repost(postId){
+        if(!currentUser) return;
         const orig = allServerPosts.find(x => x.id === postId);
-        if(!orig) return;
-        const { data: dup } = await db.from('posts').select('id')
-            .eq('author_id', currentUserId).eq('repost_of', postId).maybeSingle();
-        if(dup) return alert('Вы уже поделились этой публикацией');
+        if(!orig) return alert('Публикация не найдена');
+        if(String(orig.author_id) === String(currentUserId)) return alert('Нельзя репостить свои посты');
+        const key = String(postId);
+        if(repostLocks.has(key)) return; // защита от двойного клика
+        repostLocks.add(key);
         try {
-            await db.from('posts').insert({ author_id: currentUserId, repost_of: postId, content:'', likes:0, is_chat:false });
-            await notifyUser(orig.author_id, 'repost', currentUserId, postId, '');
+            // репост теперь работает как переключатель: повторный клик убирает репост
+            const { data: myRepost } = await db.from('posts').select('id')
+                .eq('author_id', currentUserId).eq('repost_of', postId).maybeSingle();
+            if(myRepost){
+                if(!confirm('Убрать ваш репост этой публикации?')) return;
+                const { error } = await db.from('posts').delete().eq('id', myRepost.id);
+                if(error) throw error;
+            } else {
+                const { error } = await db.from('posts').insert({
+                    author_id: currentUserId, repost_of: postId, content:'', likes:0, is_chat:false
+                });
+                if(error) throw error;
+                await notifyUser(orig.author_id, 'repost', currentUserId, postId, '');
+            }
+            EXT.page = 1;
             await loadData(true);
         } catch(e){ alert('Ошибка: ' + e.message); }
+        finally { repostLocks.delete(key); }
     }
 
     // ---------- комментарии ----------
@@ -1543,6 +1644,14 @@
         if(!box) return;
         if(box.style.display === 'none' || box.style.display === ''){
             box.style.display = 'block';
+            const _vp = allServerPosts.find(x => x.id === postId);
+            if(_vp && !_vp.__viewed){
+                _vp.__viewed = true;
+                const _v = (_vp.views || 0) + 1;
+                _vp.views = _v;
+                db.from('posts').update({ views: _v }).eq('id', postId).then(() => {});
+                document.querySelectorAll(`#views-count-${postId}`).forEach(e => e.textContent = _v);
+            }
             await loadComments(postId, !!(EXT.commentsAll && EXT.commentsAll[postId]));
             const inp = document.getElementById('comment-input-' + postId);
             if(inp) inp.focus();
@@ -1662,17 +1771,401 @@
         document.getElementById('chatReplyBar').style.display = 'none';
     }
 
+
+    // ==================== v3: расширения ====================
+    // --- лента: вкладки, поиск, приватность ---
+    function setFeedTab(t){
+        EXT.feedTab = t;
+        document.getElementById('tabAll').classList.toggle('active', t === 'all');
+        document.getElementById('tabFollow').classList.toggle('active', t === 'follow');
+        renderFeed();
+    }
+    let feedQueryTimer = null;
+    function setFeedQuery(q){
+        EXT.feedQuery = q.trim().toLowerCase();
+        clearTimeout(feedQueryTimer);
+        feedQueryTimer = setTimeout(renderFeed, 250);
+    }
+    function canViewPost(p){
+        if(String(p.author_id) === String(currentUserId)) return true;
+        if(!p.visibility || p.visibility === 'public') return true;
+        const a = allUsers.find(u => String(u.id) === String(p.author_id));
+        if(!a || !a.private) return true;
+        return (currentUser.following || []).map(String).includes(String(p.author_id));
+    }
+
+    // --- Supabase Storage (с фолбэком на dataURL, если бакет не создан) ---
+    async function uploadBlobToStorage(blob, folder, contentType){
+        try {
+            const path = folder + '/' + currentUserId + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+            const { error } = await db.storage.from('images').upload(path, blob, { contentType: contentType || 'image/jpeg', upsert: true });
+            if(error) throw error;
+            const { data: pub } = db.storage.from('images').getPublicUrl(path);
+            return pub.publicUrl;
+        } catch(e) {
+            console.warn('Storage недоступен:', e.message);
+            return null;
+        }
+    }
+    async function uploadToStorage(dataUrl, folder){
+        try {
+            const blob = await (await fetch(dataUrl)).blob();
+            return (await uploadBlobToStorage(blob, folder, 'image/jpeg')) || dataUrl;
+        } catch(e) { return dataUrl; }
+    }
+
+    // --- универсальное модальное окно ---
+    function openModal(html){
+        closeModal();
+        const ov = document.createElement('div');
+        ov.id = 'itpModal';
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9990;display:flex;align-items:center;justify-content:center;padding:16px;';
+        const box = document.createElement('div');
+        box.style.cssText = 'background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;max-width:420px;width:100%;max-height:75vh;overflow-y:auto;box-shadow:var(--shadow-lg);text-align:left;';
+        box.innerHTML = html;
+        ov.appendChild(box);
+        ov.onclick = (e) => { if(e.target === ov) closeModal(); };
+        document.body.appendChild(ov);
+    }
+    function closeModal(){ const m = document.getElementById('itpModal'); if(m) m.remove(); }
+
+    // --- подписчики ---
+    function showFollowers(){
+        const me = String(currentUserId);
+        const list = allUsers.filter(u => (u.following || []).map(String).includes(me));
+        let h = '<h3 style="margin-bottom:10px;">Подписчики (' + list.length + ')</h3>';
+        if(!list.length) h += '<p style="color:#888;">Пока нет подписчиков.</p>';
+        list.forEach(u => {
+            h += `<div class="person-card" onclick="closeModal();openUserProfile('${escapeHtml(u.name)}','${u.id}')">
+                    <img class="person-avatar" src="${escapeHtml(getUserAvatarUrl(u.avatarSeed, u.customAvatar))}">
+                    <div class="person-info"><div class="person-name">${escapeHtml(u.name)}</div>
+                    <div class="person-login">@${escapeHtml(u.login || '—')}</div></div></div>`;
+        });
+        openModal(h);
+    }
+
+    // --- жалобы и модерация ---
+    async function reportPost(postId){
+        if(EXT.reported.has(String(postId))) return alert('Вы уже жаловались на этот пост.');
+        const reason = prompt('Причина жалобы на пост #' + postId + ':');
+        if(reason === null) return;
+        try {
+            const { error } = await db.from('reports').insert({ post_id: postId, reporter_id: currentUserId, reason: reason.slice(0, 300) });
+            if(error) throw error;
+            EXT.reported.add(String(postId));
+            alert('Жалоба отправлена модераторам.');
+        } catch(e) { alert('Ошибка: ' + e.message); }
+    }
+    async function openReports(){
+        if(!currentUser.isVerified) return;
+        try {
+            const { data } = await db.from('reports').select('*').eq('resolved', false).order('id', { ascending: false }).limit(50);
+            let h = '<h3 style="margin-bottom:10px;">🛡️ Жалобы</h3>';
+            if(!data || !data.length) h += '<p style="color:#888;">Активных жалоб нет.</p>';
+            (data || []).forEach(r => {
+                const post = allServerPosts.find(x => x.id === r.post_id);
+                const rep = allUsers.find(u => String(u.id) === String(r.reporter_id));
+                h += `<div class="rep-item"><b>Пост #${r.post_id}</b> · жалоба от ${escapeHtml(rep ? rep.name : 'удалён')}<br>
+                    <i>${escapeHtml(r.reason || '—')}</i><br>
+                    ${post ? `<span style="color:var(--text-muted)">«${escapeHtml((post.content || '').slice(0, 80))}»</span>` : '<s>пост удалён</s>'}
+                    <div style="margin-top:6px;display:flex;gap:6px;">
+                        <button class="btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="resolveReport(${r.id})">✔ Решено</button>
+                        ${post ? `<button class="btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="closeModal();deletePost(${post.id})">🗑 Удалить пост</button>` : ''}
+                    </div></div>`;
+            });
+            openModal(h);
+        } catch(e) { alert('Ошибка: ' + e.message); }
+    }
+    async function resolveReport(id){
+        try { await db.from('reports').update({ resolved: true }).eq('id', id); } catch(e) {}
+        closeModal(); openReports();
+    }
+
+    // --- закрытый профиль и заявки ---
+    async function togglePrivate(){
+        const next = !currentUser.private;
+        try {
+            const { error } = await db.from('profiles').update({ private: next }).eq('id', currentUserId);
+            if(error) throw error;
+            currentUser.private = next;
+            localStorage.setItem('itp_session', JSON.stringify(currentUser));
+            updateProfileUI();
+        } catch(e) { alert('Ошибка: ' + e.message); }
+    }
+    function renderFollowRequests(){
+        const c = document.getElementById('followRequestsBlock');
+        if(!c) return;
+        const reqs = (currentUser.followRequests || []).map(String);
+        if(!reqs.length){ c.innerHTML = ''; return; }
+        let h = `<div class="tag-chip"><span>👥 Заявки в подписчики: <b>${reqs.length}</b></span></div>`;
+        reqs.forEach(id => {
+            const u = allUsers.find(x => String(x.id) === id);
+            if(!u) return;
+            h += `<div class="person-card">
+                    <img class="person-avatar" src="${escapeHtml(getUserAvatarUrl(u.avatarSeed, u.customAvatar))}">
+                    <div class="person-info"><div class="person-name">${escapeHtml(u.name)}</div>
+                    <div class="person-login">@${escapeHtml(u.login || '—')}</div></div>
+                    <button class="person-follow-btn" onclick="answerRequest('${id}', true)">Принять</button>
+                    <button class="btn-secondary" style="padding:7px 10px;font-size:12px;" onclick="answerRequest('${id}', false)">✕</button>
+                  </div>`;
+        });
+        c.innerHTML = h;
+    }
+    async function answerRequest(id, accept){
+        const reqs = (currentUser.followRequests || []).map(String).filter(x => x !== String(id));
+        try {
+            const { error } = await db.from('profiles').update({ follow_requests: reqs }).eq('id', currentUserId);
+            if(error) throw error;
+            currentUser.followRequests = reqs;
+            if(accept){
+                const { data: reqUser } = await db.from('profiles').select('following').eq('id', id).single();
+                const his = (Array.isArray(reqUser && reqUser.following) ? reqUser.following : []).map(String);
+                if(!his.includes(String(currentUserId))){
+                    his.push(String(currentUserId));
+                    await db.from('profiles').update({ following: his }).eq('id', id);
+                }
+                const iu = allUsers.find(u => String(u.id) === String(id));
+                if(iu) iu.following = his;
+                await notifyUser(id, 'follow', currentUserId, null, 'Заявка принята');
+            }
+            localStorage.setItem('itp_session', JSON.stringify(currentUser));
+            renderFollowRequests(); updateMyStats();
+        } catch(e) { alert('Ошибка: ' + e.message); }
+    }
+
+    // --- редактирование и закреп ---
+    async function editPost(postId){
+        const post = allServerPosts.find(x => x.id === postId);
+        if(!post || String(post.author_id) !== String(currentUserId)) return;
+        const txt = prompt('Отредактировать пост:', post.content || '');
+        if(txt === null) return;
+        try {
+            const { error } = await db.from('posts').update({ content: txt }).eq('id', postId);
+            if(error) throw error;
+            await loadData(true);
+        } catch(e) { alert('Ошибка: ' + e.message); }
+    }
+    async function editMessage(m){
+        if(String(m.author_id) !== String(currentUserId)) return;
+        const txt = prompt('Новый текст сообщения (пустая строка — удалить):', m.content || '');
+        if(txt === null) return;
+        try {
+            if(!txt.trim()){
+                if(!confirm('Удалить это сообщение?')) return;
+                const { error } = await db.from('posts').delete().eq('id', m.id);
+                if(error) throw error;
+            } else {
+                const { error } = await db.from('posts').update({ content: txt }).eq('id', m.id);
+                if(error) throw error;
+            }
+            await loadData(true);
+        } catch(e) { alert('Ошибка: ' + e.message); }
+    }
+    async function togglePin(postId){
+        const next = (currentUser.pinnedPostId === postId) ? null : postId;
+        try {
+            const { error } = await db.from('profiles').update({ pinned_post_id: next }).eq('id', currentUserId);
+            if(error) throw error;
+            currentUser.pinnedPostId = next;
+            renderMyPosts();
+            if(viewedUser) renderUserProfile(viewedUser);
+        } catch(e) { alert('Ошибка: ' + e.message); }
+    }
+
+    // --- "печатает..." ---
+    let lastTypingSent = 0;
+    function sendTyping(){
+        if(!activeChatPartner || !currentUserId) return;
+        const now = Date.now();
+        if(now - lastTypingSent < 2000) return;
+        lastTypingSent = now;
+        db.from('typing').insert({ user_id: currentUserId, chat_with: activeChatPartner.id }).then(() => {});
+        db.from('typing').delete().lt('created_at', new Date(now - 60000).toISOString()).then(() => {});
+    }
+    async function checkTyping(){
+        if(!activeChatPartner || !currentUserId) return;
+        try {
+            const since = new Date(Date.now() - 6000).toISOString();
+            const { data } = await db.from('typing').select('user_id')
+                .eq('user_id', activeChatPartner.id).eq('chat_with', currentUserId).gte('created_at', since);
+            const t = document.getElementById('chatRoomLogin');
+            if(!t) return;
+            if(data && data.length) t.innerHTML = '<span style="color:#2ecc71;">печатает...</span>';
+            else t.textContent = activeChatPartner.login ? '@' + activeChatPartner.login : '';
+        } catch(e) {}
+    }
+
+    // --- эмодзи-пикер ---
+    const EMOJIS = ['😀','😂','🤣','😊','😍','🥰','😎','🤔','😢','😡','👍','👎','❤️','🔥','🎉','💯','🙏','👏','🤝','✨','💀','🤯','😴','🥳'];
+    function toggleEmojiPicker(btn, inputId){
+        const old = document.getElementById('emojiPop');
+        if(old){ old.remove(); return; }
+        const pop = document.createElement('div');
+        pop.id = 'emojiPop';
+        pop.style.cssText = 'position:fixed;z-index:5000;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;box-shadow:var(--shadow-lg);';
+        const r = btn.getBoundingClientRect();
+        pop.style.bottom = (window.innerHeight - r.top + 8) + 'px';
+        pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 260)) + 'px';
+        EMOJIS.forEach(e => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.style.cssText = 'background:transparent;border:none;font-size:20px;padding:4px;cursor:pointer;box-shadow:none;';
+            b.textContent = e;
+            b.onclick = () => {
+                const inp = document.getElementById(inputId);
+                if(inp){
+                    const s = inp.selectionStart || inp.value.length;
+                    inp.value = inp.value.slice(0, s) + e + inp.value.slice(inp.selectionEnd || s);
+                    inp.focus();
+                    inp.selectionStart = inp.selectionEnd = s + e.length;
+                    if(inputId === 'postText') updatePostCounter();
+                }
+            };
+            pop.appendChild(b);
+        });
+        document.body.appendChild(pop);
+        setTimeout(() => document.addEventListener('click', function h(ev){
+            if(!pop.contains(ev.target) && ev.target !== btn){ pop.remove(); document.removeEventListener('click', h); }
+        }), 0);
+    }
+
+    // --- голосовые сообщения ---
+    let mediaRecorder = null, audioChunks = [], isRecording = false;
+    async function toggleVoiceRecording(){
+        const btn = document.getElementById('chatMicBtn');
+        if(!activeChatPartner) return;
+        if(!isRecording){
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioChunks = [];
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = (e) => { if(e.data.size) audioChunks.push(e.data); };
+                mediaRecorder.onstop = async () => {
+                    stream.getTracks().forEach(t => t.stop());
+                    isRecording = false;
+                    if(btn){ btn.textContent = '🎤'; btn.style.color = ''; }
+                    const blob = new Blob(audioChunks, { type: (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm' });
+                    if(blob.size < 300) return;
+                    const url = await uploadBlobToStorage(blob, 'voice', blob.type || 'audio/webm');
+                    if(!url) return alert('Не удалось загрузить голосовое (нужен бакет images).');
+                    try {
+                        const { error } = await db.from('posts').insert({
+                            author_id: currentUserId, chat_to: activeChatPartner.id,
+                            content: '', likes: 0, is_chat: true, voice_url: url
+                        });
+                        if(error) throw error;
+                        await loadData(true);
+                    } catch(e) { alert('Не удалось отправить: ' + e.message); }
+                };
+                mediaRecorder.start();
+                isRecording = true;
+                if(btn){ btn.textContent = '⏹'; btn.style.color = 'var(--accent)'; }
+            } catch(e) { alert('Нет доступа к микрофону: ' + e.message); }
+        } else {
+            mediaRecorder.stop();
+        }
+    }
+
+    // --- истории (24 часа) ---
+    async function loadStories(){
+        try {
+            const since = new Date(Date.now() - 864e5).toISOString();
+            const { data } = await db.from('stories').select('*').gte('created_at', since).order('id', { ascending: true });
+            EXT.stories = data || [];
+        } catch(e) { EXT.stories = []; }
+        renderStoriesStrip();
+    }
+    function storiesByAuthor(){
+        const m = new Map();
+        (EXT.stories || []).forEach(s => {
+            const k = String(s.author_id);
+            if(!m.has(k)) m.set(k, []);
+            m.get(k).push(s);
+        });
+        return m;
+    }
+    function renderStoriesStrip(){
+        const c = document.getElementById('storiesStrip');
+        if(!c) return;
+        const m = storiesByAuthor();
+        let h = `<div class="story-bubble" onclick="document.getElementById('storyFileInput').click()" title="Добавить историю">
+                     <div class="story-img" style="display:flex;align-items:center;justify-content:center;font-size:24px;">＋</div><span>Вы</span></div>`;
+        m.forEach((arr, uid) => {
+            if(isBlockedId(uid) || String(uid) === String(currentUserId)) return;
+            const u = allUsers.find(x => String(x.id) === uid);
+            if(!u) return;
+            h += `<div class="story-bubble" onclick="openStoryViewer('${uid}')">
+                     <div class="story-img"><img src="${escapeHtml(getUserAvatarUrl(u.avatarSeed, u.customAvatar))}"></div><span>${escapeHtml(u.name)}</span></div>`;
+        });
+        c.innerHTML = h;
+    }
+    async function addStory(event){
+        const file = event.target.files && event.target.files[0];
+        event.target.value = '';
+        if(!file) return;
+        try {
+            const dataUrl = await compressImage(file, 1080, 0.8);
+            const url = await uploadToStorage(dataUrl, 'stories');
+            const { error } = await db.from('stories').insert({ author_id: currentUserId, image_url: url });
+            if(error) throw error;
+            await loadStories();
+        } catch(e) { alert('Ошибка истории: ' + e.message); }
+    }
+    let storyTimer = null;
+    function openStoryViewer(authorId){
+        const arr = (storiesByAuthor().get(String(authorId)) || []).filter(s => !isBlockedId(s.author_id));
+        if(!arr.length) return;
+        const u = allUsers.find(x => String(x.id) === String(authorId));
+        let idx = 0;
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+        const img = document.createElement('img');
+        img.style.cssText = 'max-width:92vw;max-height:76vh;border-radius:12px;object-fit:contain;';
+        const cap = document.createElement('div');
+        cap.style.cssText = 'color:#fff;font-weight:700;margin-top:10px;font-size:14px;';
+        const bar = document.createElement('div');
+        bar.style.cssText = 'position:absolute;top:10px;left:10px;right:10px;height:3px;background:rgba(255,255,255,.25);border-radius:2px;overflow:hidden;';
+        const fill = document.createElement('div');
+        fill.style.cssText = 'height:100%;background:var(--accent);width:0%;transition:width 5s linear;';
+        bar.appendChild(fill);
+        const show = () => {
+            img.src = arr[idx].image_url;
+            cap.textContent = (u ? u.name : '') + ' · ' + (idx + 1) + '/' + arr.length;
+            clearTimeout(storyTimer);
+            fill.style.transition = 'none'; fill.style.width = '0%';
+            void fill.offsetWidth;
+            fill.style.transition = 'width 5s linear'; fill.style.width = '100%';
+            storyTimer = setTimeout(() => { idx++; if(idx >= arr.length) ov.remove(); else show(); }, 5000);
+        };
+        const left = document.createElement('div');
+        left.style.cssText = 'position:absolute;left:0;top:0;bottom:0;width:35%;cursor:pointer;z-index:1;';
+        const right = document.createElement('div');
+        right.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:35%;cursor:pointer;z-index:1;';
+        left.onclick = () => { idx--; if(idx < 0) ov.remove(); else show(); };
+        right.onclick = () => { idx++; if(idx >= arr.length) ov.remove(); else show(); };
+        const close = document.createElement('button');
+        close.textContent = '✕';
+        close.style.cssText = 'position:absolute;top:22px;right:14px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;z-index:2;';
+        close.onclick = () => { clearTimeout(storyTimer); ov.remove(); };
+        ov.appendChild(bar); ov.appendChild(left); ov.appendChild(right); ov.appendChild(img); ov.appendChild(cap); ov.appendChild(close);
+        document.body.appendChild(ov);
+        show();
+    }
+
     // ==================== ПЕРЕОПРЕДЕЛЕНИЯ ====================
     function mapProfile(p){
         return {
             id: p.id, login: p.login, name: p.name || p.login,
             avatarSeed: p.avatar_seed || p.login,
-            customAvatar: (p.custom_avatar && p.custom_avatar.startsWith('data:image')) ? p.custom_avatar : null,
+            customAvatar: (p.custom_avatar && (p.custom_avatar.startsWith('data:image') || p.custom_avatar.startsWith('http'))) ? p.custom_avatar : null,
             isVerified: normalizeVerified(p.is_verified),
             bio: p.bio || "", createdAt: p.created_at || "",
             following: Array.isArray(p.following) ? p.following : [],
             blocked: Array.isArray(p.blocked) ? p.blocked : [],
-            lastSeen: p.last_seen || null
+            lastSeen: p.last_seen || null,
+            private: !!p.private,
+            followRequests: Array.isArray(p.follow_requests) ? p.follow_requests : [],
+            pinnedPostId: p.pinned_post_id || null
         };
     }
 
@@ -1682,7 +2175,6 @@
             const { data, error } = await db.from('posts').select('*').order('id', { ascending:false }).limit(300);
             if(error) throw error;
             allServerPosts = data;
-            if(force) EXT.page = 1;
             try {
                 const ids = data.map(p => p.id);
                 if(ids.length){
@@ -1690,8 +2182,14 @@
                     EXT.polls = {}; (polls || []).forEach(pl => EXT.polls[pl.post_id] = pl);
                     const { data: votes } = await db.from('poll_votes').select('*').eq('user_id', currentUserId).in('post_id', ids);
                     EXT.myVotes = {}; (votes || []).forEach(v => EXT.myVotes[v.post_id] = v.option_idx);
+                    const { data: myLikes } = await db.from('likes').select('post_id').eq('user_id', currentUserId).in('post_id', ids);
+                    EXT.likeSet = new Set((myLikes || []).map(r => String(r.post_id)));
+                    const { data: likeRows } = await db.from('likes').select('post_id').in('post_id', ids);
+                    EXT.likeCounts = {};
+                    (likeRows || []).forEach(r => { const k = String(r.post_id); EXT.likeCounts[k] = (EXT.likeCounts[k] || 0) + 1; });
                 }
-            } catch(e){ /* таблица опросов ещё не создана */ }
+            } catch(e){ /* таблицы опросов/лайков ещё не созданы */ }
+            loadStories();
             renderFeed();
             renderMyPosts();
             if(activeChatPartner) renderDirectMessages();
@@ -1705,6 +2203,7 @@
 
     function buildPostEl(p, liked){
         const original = p.repost_of ? allServerPosts.find(x => x.id === p.repost_of) : null;
+        if(p.repost_of && !original) return el; // оригинал удалён — не показываем пустой репост
         const disp = original || p;
         const author = allUsers.find(u => String(u.id) === String(disp.author_id));
         const reposter = allUsers.find(u => String(u.id) === String(p.author_id));
@@ -1715,8 +2214,12 @@
         const badge = verifiedBadgeFromType(author.isVerified);
         const isLiked = liked.includes(String(disp.id));
         const repostCount = allServerPosts.filter(x => x.repost_of === disp.id).length;
+        const myReposted = allServerPosts.some(x => x.repost_of === disp.id && String(x.author_id) === String(currentUserId));
         const poll = EXT.polls ? EXT.polls[disp.id] : null;
         let h = '';
+        if(currentUser && currentUser.pinnedPostId === disp.id && !original){
+            h += `<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">📌 Закреплённый пост</div>`;
+        }
         if(original && reposter){
             h += `<div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">↻ <b style="color:var(--blue);cursor:pointer;" onclick="openUserProfile('${escapeHtml(reposter.name)}','${reposter.id}')">${escapeHtml(reposter.name)}</b> поделился публикацией · ${formatChatTime(p.created_at)}</div>`;
         }
@@ -1729,11 +2232,17 @@
         if(!disp.content && !disp.image_url && !poll) h += `<div class="post-content">Пустое сообщение</div>`;
         if(poll) h += pollHtml(disp.id, poll);
         h += `<div class="post-actions">
-                <div class="action-btn ${isLiked?'liked':''}" id="like-btn-${disp.id}" onclick="toggleLike(${disp.id},${disp.likes||0})">❤️ <span id="like-count-${disp.id}">${disp.likes||0}</span></div>
+                <div class="action-btn ${isLiked?'liked':''}" id="like-btn-${disp.id}" onclick="toggleLike(${disp.id},${disp.likes||0})">❤️ <span id="like-count-${disp.id}">${(EXT.likeCounts[disp.id] != null ? EXT.likeCounts[disp.id] : (disp.likes||0))}</span></div>
                 <div class="action-btn" onclick="toggleComments(${disp.id})">💬 <span>${disp.comments_count||0}</span></div>
-                <div class="action-btn" onclick="repost(${disp.id})">↻ <span>${repostCount}</span></div>`;
+                <div class="action-btn ${myReposted ? 'liked' : ''}" title="${myReposted ? 'Убрать репост' : 'Поделиться'}" onclick="repost(${disp.id})">↻ <span>${repostCount}</span></div>
+                <div class="action-btn" style="cursor:default;" title="Просмотры">👁 <span id="views-count-${disp.id}">${disp.views||0}</span></div>`;
         if(String(author.id) !== String(currentUserId)){
             h += `<div class="action-btn chat-link" onclick="event.stopPropagation();openChatWithId('${author.id}')">✉️ Личное сообщение</div>`;
+            h += `<div class="action-btn" title="Пожаловаться" onclick="event.stopPropagation();reportPost(${disp.id})">🚩</div>`;
+        }
+        if(!original && String(author.id) === String(currentUserId)){
+            h += `<div class="action-btn" title="Редактировать" onclick="event.stopPropagation();editPost(${disp.id})">✏️</div>`;
+            h += `<div class="action-btn" title="${currentUser && currentUser.pinnedPostId === disp.id ? 'Открепить' : 'Закрепить в профиле'}" onclick="event.stopPropagation();togglePin(${disp.id})">📌</div>`;
         }
         if(String(p.author_id) === String(currentUserId)){
             h += `<div class="action-btn delete-btn" onclick="event.stopPropagation();deletePost(${p.id})">🗑️ Удалить</div>`;
@@ -1754,6 +2263,14 @@
         const c = document.getElementById('postsContainer');
         c.innerHTML = '';
         let publicPosts = allServerPosts.filter(p => !p.is_chat);
+        publicPosts = publicPosts.filter(canViewPost);
+        if(EXT.feedTab === 'follow' && currentUser){
+            const f = (currentUser.following || []).map(String);
+            publicPosts = publicPosts.filter(p => f.includes(String(p.author_id)));
+        }
+        if(EXT.feedQuery){
+            publicPosts = publicPosts.filter(p => (p.content || '').toLowerCase().includes(EXT.feedQuery));
+        }
         if(EXT.tagFilter){
             const chip = document.createElement('div');
             chip.className = 'tag-chip';
@@ -1766,7 +2283,7 @@
             c.innerHTML += "<p style='text-align:center;color:#888;margin-top:20px;'>Постов пока нет.</p>";
             return;
         }
-        const liked = JSON.parse(localStorage.getItem('itp_liked') || '[]');
+        const liked = Array.from(EXT.likeSet || []);
         const visible = publicPosts.slice(0, EXT.page * EXT.pageSize);
         const frag = document.createDocumentFragment();
         visible.forEach(p => {
@@ -1791,11 +2308,13 @@
         const c = document.getElementById('myPostsContainer');
         if(!c || !currentUser) return;
         const myPosts = allServerPosts.filter(p => !p.is_chat && String(p.author_id) === String(currentUserId));
+        const myPin = currentUser.pinnedPostId;
+        myPosts.sort((a,b) => ((b.id === myPin) ? 1 : 0) - ((a.id === myPin) ? 1 : 0));
         if(!myPosts.length){
             c.innerHTML = "<p style='text-align:center;color:#888;margin-top:20px;'>У вас пока нет постов.</p>";
             return;
         }
-        const liked = JSON.parse(localStorage.getItem('itp_liked') || '[]');
+        const liked = Array.from(EXT.likeSet || []);
         const frag = document.createDocumentFragment();
         myPosts.forEach(p => frag.appendChild(buildPostEl(p, liked)));
         c.innerHTML = ''; c.appendChild(frag);
@@ -1855,6 +2374,8 @@
         else { bioEl.textContent = ''; bioEl.style.display = 'none'; }
 
         const posts = allServerPosts.filter(p => !p.is_chat && String(p.author_id) === String(user.id));
+        const theirPin = rec ? rec.pinnedPostId : null;
+        posts.sort((a,b) => ((b.id === theirPin) ? 1 : 0) - ((a.id === theirPin) ? 1 : 0));
         const likesTotal = posts.reduce((s,p) => s + (p.likes||0), 0);
         document.getElementById('userPostsCount').textContent = posts.length;
         document.getElementById('userLikesCount').textContent = likesTotal;
@@ -1863,7 +2384,9 @@
         const blocked = isBlockedId(data.id);
         const followBtn = document.getElementById('userFollowBtn');
         const isFollowing = (currentUser.following||[]).map(String).includes(String(user.id));
-        followBtn.textContent = isFollowing ? 'Отписаться' : 'Подписаться';
+        const requested = !!(rec && (rec.followRequests||[]).map(String).includes(String(currentUserId)));
+        followBtn.textContent = requested ? 'Заявка отправлена ✓' : (isFollowing ? 'Отписаться' : 'Подписаться');
+        followBtn.disabled = requested;
         followBtn.style.display = blocked ? 'none' : 'block';
         followBtn.style.background = isFollowing ? 'var(--bg-elevated)' : 'var(--accent)';
         followBtn.style.color = isFollowing ? 'var(--text-primary)' : '#fff';
@@ -1890,7 +2413,7 @@
             c.innerHTML = "<p style='text-align:center;color:#888;'>Публикаций нет.</p>";
             return;
         }
-        const liked = JSON.parse(localStorage.getItem('itp_liked') || '[]');
+        const liked = Array.from(EXT.likeSet || []);
         const frag = document.createDocumentFragment();
         posts.forEach(p => frag.appendChild(buildPostEl(p, liked)));
         c.appendChild(frag);
@@ -1976,14 +2499,21 @@
                     img.onclick = () => openImageFullscreen(m.image_url);
                     div.appendChild(img);
                 }
+                if(m.voice_url){
+                    const a = document.createElement('audio');
+                    a.controls = true; a.src = m.voice_url;
+                    a.style.cssText = 'max-width:240px;display:block;';
+                    div.appendChild(a);
+                }
                 if(hasText){
                     const t = document.createElement('div');
                     t.innerText = m.content;
                     div.appendChild(t);
                 }
                 div.style.cursor = 'pointer';
-                div.title = 'Ответить на сообщение';
-                div.onclick = (e) => { if(e.target.tagName !== 'IMG') setChatReply(m); };
+                div.title = isOutgoing ? 'Ваше сообщение: двойной клик — изменить/удалить' : 'Ответить на сообщение';
+                div.onclick = (e) => { if(e.target.tagName !== 'IMG' && !isOutgoing) setChatReply(m); };
+                div.ondblclick = (e) => { if(e.target.tagName !== 'IMG' && isOutgoing) editMessage(m); };
                 frag.appendChild(div);
             });
             container.appendChild(frag);
@@ -2019,7 +2549,7 @@
                 content: txt || '',
                 likes: 0,
                 is_chat: true,
-                image_url: imgToSend || null,
+                image_url: imgToSend ? await uploadToStorage(imgToSend, 'chat') : null,
                 reply_to: replyTo
             });
             if(error) throw error;
@@ -2052,6 +2582,9 @@
         document.getElementById('chatRoomName').innerHTML = `${escapeHtml(u.name)}${verifiedBadgeFromType(u.isVerified)}`;
         document.getElementById('chatRoomLogin').textContent = u.login ? '@' + u.login : '';
         renderDirectMessages();
+        if(EXT.typingTimer) clearInterval(EXT.typingTimer);
+        EXT.typingTimer = setInterval(checkTyping, 3000);
+        checkTyping();
         window.scrollTo({ top: 0, behavior: 'instant' });
     }
 
@@ -2070,7 +2603,8 @@
         try {
             const { data: ins, error } = await db.from('posts').insert({
                 author_id: currentUserId, content: txt, likes: 0, is_chat: false,
-                image_url: pendingPostImage || null
+                image_url: pendingPostImage ? await uploadToStorage(pendingPostImage, 'posts') : null,
+                visibility: (document.getElementById('postVisibility') || { value: 'public' }).value
             }).select().single();
             if(error) throw error;
             if(hasPoll){
@@ -2088,6 +2622,7 @@
             txtEl.value = '';
             clearPostImage();
             updatePostCounter();
+            EXT.page = 1;
             await loadData(true);
         } catch(e){ alert('Не удалось отправить: ' + e.message); }
         finally { unlock(); }
@@ -2095,39 +2630,57 @@
 
     async function toggleLike(postId, currentLikes){
         const idStr = String(postId);
-        if(likeLocks.has(idStr)) return;
+        if(likeLocks.has(idStr) || !currentUser) return;
         likeLocks.add(idStr);
-        let liked = JSON.parse(localStorage.getItem('itp_liked') || '[]');
-        const hasLiked = liked.includes(idStr);
-        const newCount = hasLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
-        if(hasLiked) liked = liked.filter(x => x !== idStr);
-        else liked.push(idStr);
-        localStorage.setItem('itp_liked', JSON.stringify(liked));
-        const el = document.getElementById('like-count-' + postId);
-        const parent = document.getElementById('like-btn-' + postId);
-        if(el) el.innerText = newCount;
-        if(parent) parent.classList.toggle('liked', !hasLiked);
+        const hasLiked = EXT.likeSet.has(idStr);
+        const oldCount = (EXT.likeCounts[idStr] != null) ? EXT.likeCounts[idStr] : (currentLikes || 0);
+        const newCount = hasLiked ? Math.max(0, oldCount - 1) : oldCount + 1;
+        if(hasLiked) EXT.likeSet.delete(idStr); else EXT.likeSet.add(idStr);
+        EXT.likeCounts[idStr] = newCount;
+        updateLikeUI(postId);
         try {
-            const { error } = await db.from('posts').update({ likes: newCount }).eq('id', postId);
-            if(error) throw error;
-            if(!hasLiked){
+            if(hasLiked){
+                const { error } = await db.from('likes').delete().eq('post_id', postId).eq('user_id', currentUserId);
+                if(error) throw error;
+            } else {
+                const { error } = await db.from('likes').insert({ post_id: postId, user_id: currentUserId });
+                if(error) throw error;
                 const post = allServerPosts.find(x => x.id === postId);
                 if(post) await notifyUser(post.author_id, 'like', currentUserId, postId, '');
             }
         } catch(e) {
-            if(hasLiked) liked.push(idStr); else liked = liked.filter(x => x !== idStr);
-            localStorage.setItem('itp_liked', JSON.stringify(liked));
-            if(el) el.innerText = currentLikes;
-            if(parent) parent.classList.toggle('liked', hasLiked);
+            if(hasLiked) EXT.likeSet.add(idStr); else EXT.likeSet.delete(idStr);
+            EXT.likeCounts[idStr] = oldCount;
+            updateLikeUI(postId);
+            if(!e.__muted) alert('Лайки: ' + e.message + ' — выполните SQL-миграцию из шапки файла.');
         } finally { likeLocks.delete(idStr); }
+    }
+    function updateLikeUI(postId){
+        const k = String(postId);
+        document.querySelectorAll(`#like-count-${postId}`).forEach(el => el.innerText = EXT.likeCounts[k] ?? 0);
+        document.querySelectorAll(`#like-btn-${postId}`).forEach(el => el.classList.toggle('liked', EXT.likeSet.has(k)));
     }
 
     async function toggleFollow(targetId){
         if(!currentUser || String(targetId) === String(currentUserId)) return;
+        const target = allUsers.find(u => String(u.id) === String(targetId));
         let arr = (currentUser.following || []).map(String);
         const has = arr.includes(String(targetId));
         arr = has ? arr.filter(x => x !== String(targetId)) : [...arr, String(targetId)];
         try {
+            if(!has && target && target.private){
+                const reqs = (target.followRequests || []).map(String);
+                if(!reqs.includes(String(currentUserId))){
+                    reqs.push(String(currentUserId));
+                    const { error } = await db.from('profiles').update({ follow_requests: reqs }).eq('id', targetId);
+                    if(error) throw error;
+                    target.followRequests = reqs;
+                    await notifyUser(targetId, 'follow', currentUserId, null, 'Заявка в подписчики');
+                }
+                alert('Профиль закрыт — заявка отправлена. После одобрения вы увидите посты.');
+                if(viewedUser) renderUserProfile(viewedUser);
+                return;
+            }
             const { error } = await db.from('profiles').update({ following: arr }).eq('id', currentUserId);
             if(error) throw error;
             currentUser.following = arr;
@@ -2229,6 +2782,23 @@
         replyBar.innerHTML = `<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-secondary);" id="chatReplyText"></span>
             <button type="button" onclick="cancelChatReply()" style="background:transparent;color:var(--accent);border:none;font-size:16px;padding:0 4px;box-shadow:none;cursor:pointer;">✕</button>`;
         document.querySelector('.chat-footer').before(replyBar);
+
+        // "печатает..." — отправляем сигнал при вводе
+        const ci = document.getElementById('chatMessageInput');
+        if(ci) ci.addEventListener('input', sendTyping);
+
+        // PWA: манифест + theme-color (service worker требует отдельного файла на хостинге)
+        try {
+            const manifest = { name:'ИТП', short_name:'ИТП', start_url: location.href, display:'standalone',
+                               background_color:'#0a0a0b', theme_color:'#ff4d4d', icons:[] };
+            const l = document.createElement('link');
+            l.rel = 'manifest';
+            l.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type:'application/json' }));
+            document.head.appendChild(l);
+            const tc = document.createElement('meta');
+            tc.name = 'theme-color'; tc.content = '#0a0a0b';
+            document.head.appendChild(tc);
+        } catch(e){}
     })();
 
 </script>
